@@ -58,6 +58,12 @@ int main()
         return -1;
     }
 
+    // configure global opengl state
+    // -----------------------------
+    // 开启深度缓冲
+    glEnable(GL_DEPTH_TEST);
+
+
     Shader shader("Shaders/Vertex.shader", "Shaders/Fragment.Shader");
 
 	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
@@ -75,14 +81,13 @@ int main()
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
-    // color attribute
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
+
     // texture attribute
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
 
 
     // 生成纹理
@@ -152,9 +157,7 @@ int main()
     shader.SetInt("texture1", 0);
     shader.SetInt("texture2", 1);
 
-
-    // 设置shader中 图片移动
-    
+    float fov = 45.0f;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -171,7 +174,8 @@ int main()
         // render
         // ------
         glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        // 清楚深度缓冲
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         // draw our first triangle
         shader.UseProgram();
@@ -183,26 +187,37 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture2);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
-        //trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-        glm::mat4 trans(1.0f);
+
+        // 设置shader中 图片移动
+        glm::mat4 view(1.0f);
+        glm::mat4 proj(1.0f);
 
 
-        trans = glm::translate(trans, glm::vec3(0.0f, 0.5f, 0.0f));
-        trans = glm::rotate(trans, glm::radians((float)glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
+        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
+        proj = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
-
-
-        shader.SetMat4("trans", trans);
+        shader.SetMat4("view", view);
+        shader.SetMat4("proj", proj);
 
 
         if (checkbox)
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            for (int i = 0; i < 10; i++) {
+                glm::mat4 model(1.0f);
+                model = glm::translate(model, cubePositions[i]);
+                model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
+                shader.SetMat4("model", model);
+                glDrawArrays(GL_TRIANGLES, 0, 36);
+
+            }
+            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
 
 
+        // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
         ImGui::Text("heelo the adventurer!");
         ImGui::Checkbox("Draw", &checkbox);
+        ImGui::SliderFloat("FOV", &fov, 25.0f, 90.0f);
         ImGui::End();
 
         ImGui::Render();
