@@ -6,6 +6,14 @@
 #include"glm/vec3.hpp"
 #include"Data.h"
 #include"stb_image.h"
+
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+
+#include"glm/mat4x4.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
@@ -144,6 +152,9 @@ int main()
     shader.SetInt("texture1", 0);
     shader.SetInt("texture2", 1);
 
+
+    // …Ë÷√shader÷– Õº∆¨“∆∂Ø
+    
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -172,7 +183,16 @@ int main()
         glBindTexture(GL_TEXTURE_2D, texture2);
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
-        
+        //trans = glm::rotate(trans, glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+        glm::mat4 trans(1.0f);
+
+
+        trans = glm::translate(trans, glm::vec3(0.0f, 0.5f, 0.0f));
+        trans = glm::rotate(trans, glm::radians((float)glfwGetTime()), glm::vec3(0.0, 0.0, 1.0));
+
+
+
+        shader.SetMat4("trans", trans);
 
 
         if (checkbox)
