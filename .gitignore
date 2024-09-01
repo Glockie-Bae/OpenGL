@@ -1,6 +1,12 @@
-﻿################################################################################
-# 此 .gitignore 文件已由 Microsoft(R) Visual Studio 自动创建。
-################################################################################
+# Directories
+.vs/
+x64
 
-/.vs/OpenGL
-/x64/Debug
+# Files
+*.user
+
+
+# git status 
+# git add* 
+# git commmit -m " "
+# git push origin main
