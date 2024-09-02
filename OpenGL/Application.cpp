@@ -78,20 +78,16 @@ int main()
 
 
     // 生成纹理
-    unsigned int texture1;
+    unsigned int texture1 = 0;
     glGenTextures(1, &texture1);
     glBindTexture(GL_TEXTURE_2D, texture1);
     // 为当前绑定的纹理对象设置环绕、过滤方式
-    /*
-	GL_TEXTURE_WRAP_S GL_TEXTURE_WRAP_T 对纹理图片的S T轴进行环绕和过滤
-	GL_TEXTURE_MIN_FILTER GL_TEXTURE_MIN_FILTER 纹理图片放大缩小的过滤方式
-    GL_LINEAR 纹理线性插值
-    */
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // 加载并生成纹理
+
+    // 加载纹理图片
     int width, height, nrChannels;
     unsigned char* data = stbi_load("res/wall.jpg", &width, &height, &nrChannels, 0);
     if (data)
@@ -105,26 +101,28 @@ int main()
     }
     stbi_image_free(data);
 
-    unsigned int texture2;
-	glGenTextures(1, &texture2);
-	glBindTexture(GL_TEXTURE_2D, texture2);
-	// 为当前绑定的纹理对象设置环绕、过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // 加载并生成纹理
-    data = stbi_load("res/container.jpg", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
+    unsigned int texture2 = 0;
+    glGenTextures(1, &texture2);
+    glBindTexture(GL_TEXTURE_2D, texture2);
+    // 为当前绑定的纹理对象设置环绕、过滤方式
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    //// 加载纹理图片
+    //data = stbi_load("res/container.jpg", &width, &height, &nrChannels, 0);
+    //if (data)
+    //{
+    //    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+    //    glGenerateMipmap(GL_TEXTURE_2D);
+    //}
+    //else
+    //{
+    //    std::cout << "Failed to load texture" << std::endl;
+    //}
+    //stbi_image_free(data);
+  
 
 
 	// ImGui 初始化

@@ -23,6 +23,7 @@ public:
 	void Set4Float(const std::string& name, float v0, float v1, float v2, float v3) const;
     void DeleteProgram();
 
+
 private:
 	void checkCompileErrors(unsigned int shader, std::string type);
     unsigned int m_ShaderProgram;

@@ -87,6 +87,9 @@ void Shader::DeleteProgram()
 	glDeleteProgram(m_ShaderProgram);
 }
 
+
+
+
 void Shader::checkCompileErrors(unsigned int shader, std::string type)
 {
 	// ≈–∂œ «∑Òvertex shader±‡“Î≥…π¶
