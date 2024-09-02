@@ -28,6 +28,8 @@ public:
     
     // uniform matrix
     void SetMat4(const std::string& name, glm::mat4 trans) const;
+    void SetMat3(const std::string& name, glm::mat3 trans) const;
+
 
     // uniform vector
     void SetVec3f(const std::string& name, glm::vec3 vec) const;

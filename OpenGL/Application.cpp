@@ -29,7 +29,7 @@ Camera camera;
 
 bool right_mouse_pressed = false;
 
-glm::vec3 lightPos(1.2f, 0.0f, -1.0f);
+glm::vec3 lightPos(1.2f, 0.0f, 2.0f);
 
 int main()
 {
@@ -84,8 +84,11 @@ int main()
 
     glBindVertexArray(VAO);
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
 
     // 光源
     unsigned int lightVAO;
@@ -93,7 +96,7 @@ int main()
     glBindVertexArray(lightVAO);
 	// VBO 存放箱子的位置数据
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
 
@@ -106,7 +109,7 @@ int main()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
 
-
+    float size = 1.0f;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -122,7 +125,7 @@ int main()
 
         // render
         // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         // 清楚深度缓冲
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -142,14 +145,23 @@ int main()
 		shader.SetMat4("model", model);
 		shader.SetMat4("view", view);
 		shader.SetMat4("projection", projection);
+        shader.SetVec3f("lightPos", lightPos);
+
+        // 法线矩阵
+        glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
+        shader.SetMat3("normalMatrix", normalMatrix);
+
+        // 观察位置
+        shader.SetVec3f("viewPos", camera.GetPos());
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-
+       
         lightShader.UseProgram();
         lightShader.SetMat4("view", view);
         lightShader.SetMat4("projection", projection);
+        lightShader.SetFloat("size", size);
 
         model = glm::mat4(1.0f);
 		model = glm::translate(model, lightPos);
@@ -166,6 +178,7 @@ int main()
         ImGui::Text("heelo the adventurer!");
         ImGui::SliderFloat("FOV", &FOV, 25.0f, 90.0f);
         camera.SetFOV(FOV);
+        ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
         ImGui::End();
 
         ImGui::Render();
