@@ -55,17 +55,33 @@ void Camera::KeyboardMoveCamera(GLFWwindow* window, float deltaTime)
 
 
 
-void Camera::MouseMoveCameraView(float mouseXOffset, float mouseYOffset, GLboolean constrainPitch)
+void Camera::MouseMoveCameraView(double xposIn , double yposIn, GLboolean constrainPitch)
 {
 	
+	float xpos = static_cast<float>(xposIn);
+	float ypos = static_cast<float>(yposIn);
+
+	if (m_FirstMouse) {
+		m_LastX = xpos;
+		m_LastY = ypos;
+		m_FirstMouse = false;
+	}
+
+	float xoffset = xpos - m_LastX;
+	float yoffset = m_LastY - ypos; // reversed since y-coordinates go from bottom to top
+
+
+	m_LastX = xpos;
+	m_LastY = ypos;
+	
 	m_MouseSensitivity = 0.1f;
-	mouseXOffset *= m_MouseSensitivity;
-	mouseYOffset *= m_MouseSensitivity;
+	xoffset *= m_MouseSensitivity;
+	yoffset *= m_MouseSensitivity;
 
 	
 
-	m_Yaw += mouseXOffset;
-	m_Pitch += mouseYOffset;
+	m_Yaw += xoffset;
+	m_Pitch += yoffset;
 
 
 	if (constrainPitch) {
@@ -107,6 +123,11 @@ float Camera::GetFOV() const
 void Camera::SetFOV(float FOV)
 {
 	m_Zoom = FOV;
+}
+
+void Camera::SetFirstMouse(bool IsTrue)
+{
+	m_FirstMouse = IsTrue;
 }
 
 

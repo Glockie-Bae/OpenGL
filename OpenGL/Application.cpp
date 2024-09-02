@@ -25,8 +25,6 @@ const unsigned int SCR_HEIGHT = 600;
 float currentTime = 0;
 float lastTime = 0;
 bool firstMouse = true;
-float lastX = 0;
-float lastY = 0;
 Camera camera;
 
 bool right_mouse_pressed = false;
@@ -218,34 +216,18 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
 
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
      
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS) {
         right_mouse_pressed = true;
-
-
+    }
 
     if (right_mouse_pressed) {
-        float xpos = static_cast<float>(xposIn);
-        float ypos = static_cast<float>(yposIn);
-
-        if (firstMouse) {
-            lastX = xpos;
-            lastY = ypos;
-            firstMouse = false;
-        }
-
-        float xoffset = xpos - lastX;
-        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-
-        lastX = xpos;
-        lastY = ypos;
-
-        //std::cout << xoffset << " and " << yoffset << std::endl;
-        camera.MouseMoveCameraView(xoffset, yoffset);
+        camera.MouseMoveCameraView(xposIn, yposIn);
     }
     
-    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE) {
         right_mouse_pressed = false;
+        camera.SetFirstMouse(true);
+    }
     
 }
 

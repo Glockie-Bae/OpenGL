@@ -23,7 +23,7 @@ public:
 	// 摄像机位置移动
 	void KeyboardMoveCamera(GLFWwindow * window, float deltaTime);
 	// 摄像机镜头移动
-	void MouseMoveCameraView(float mouseXOffset, float mouseYOffset, GLboolean constrainPitch = true);
+	void MouseMoveCameraView(double xposIn, double yposIn, GLboolean constrainPitch = true);
 	// 摄像机缩放移动
 	void MouseSrollCameraView(float yoffset);
 	void updateCameraView();
@@ -31,6 +31,8 @@ public:
 	float GetFOV() const ;
 	void SetFOV(float FOV);
 	
+	void SetFirstMouse(bool IsTrue);
+
 private:
 	glm::vec3 m_CameraPos;
 	glm::vec3 m_CameraFront;
@@ -44,5 +46,8 @@ private:
 	float m_Yaw = -90.0f;
 	float m_Zoom = 45.0f;
 
-	
+	float m_LastX = 0;
+	float m_LastY = 0;
+
+	bool m_FirstMouse = true;
 };
