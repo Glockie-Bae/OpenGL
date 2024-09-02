@@ -2,31 +2,35 @@
 #include"imgui_impl_glfw.h"
 #include"imgui_impl_opengl3.h"
 #include"Shaders/Shader.h"
+#include"Camera.h"
 
 #include"glm/vec3.hpp"
 #include"Data.h"
 #include"stb_image.h"
-
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-
-
-#include"glm/mat4x4.hpp"
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 
 #include <iostream>
 
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
+void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
+
 void processInput(GLFWwindow* window);
+
 
 // settings
 const unsigned int SCR_WIDTH = 800;
 const unsigned int SCR_HEIGHT = 600;
+
+float currentTime = 0;
+float lastTime = 0;
+bool firstMouse = true;
+float lastX = 0;
+float lastY = 0;
+Camera camera;
+
+bool right_mouse_pressed = false;
 
 int main()
 {
@@ -49,6 +53,8 @@ int main()
 
     glfwMakeContextCurrent(window);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetScrollCallback(window, sroll_callback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -156,8 +162,6 @@ int main()
     shader.UseProgram();
     shader.SetInt("texture1", 0);
     shader.SetInt("texture2", 1);
-
-    float fov = 45.0f;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -188,13 +192,17 @@ int main()
         glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
 
 
+        currentTime = glfwGetTime();
+        float deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+        camera.KeyboardMoveCamera(window, deltaTime);
+
         // …Ë÷√shader÷– Õº∆¨“∆∂Ø
-        glm::mat4 view(1.0f);
         glm::mat4 proj(1.0f);
 
 
-        view = glm::translate(view, glm::vec3(0.0f, 0.0f, -3.0f));
-        proj = glm::perspective(glm::radians(fov), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        proj = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
 
         shader.SetMat4("view", view);
         shader.SetMat4("proj", proj);
@@ -211,13 +219,14 @@ int main()
             }
             //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
-
+        float FOV = camera.GetFOV();
 
         // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
         ImGui::Text("heelo the adventurer!");
         ImGui::Checkbox("Draw", &checkbox);
-        ImGui::SliderFloat("FOV", &fov, 25.0f, 90.0f);
+        ImGui::SliderFloat("FOV", &FOV, 25.0f, 90.0f);
+        camera.SetFOV(FOV);
         ImGui::End();
 
         ImGui::Render();
@@ -254,6 +263,7 @@ void processInput(GLFWwindow* window)
 {
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
+
 }
 
 // glfw: whenever the window size changed (by OS or user resize) this callback function executes
@@ -263,4 +273,41 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height)
     // make sure the viewport matches the new window dimensions; note that width and 
     // height will be significantly larger than specified on retina displays.
     glViewport(0, 0, width, height);
+}
+
+void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
+     
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS)
+        right_mouse_pressed = true;
+
+
+
+    if (right_mouse_pressed) {
+        float xpos = static_cast<float>(xposIn);
+        float ypos = static_cast<float>(yposIn);
+
+        if (firstMouse) {
+            lastX = xpos;
+            lastY = ypos;
+            firstMouse = false;
+        }
+
+        float xoffset = xpos - lastX;
+        float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
+
+
+        lastX = xpos;
+        lastY = ypos;
+
+        //std::cout << xoffset << " and " << yoffset << std::endl;
+        camera.MouseMoveCameraView(xoffset, yoffset);
+    }
+    
+    if (glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT) == GLFW_RELEASE)
+        right_mouse_pressed = false;
+    
+}
+
+void sroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
+    camera.MouseSrollCameraView(static_cast<float>(yoffset));
 }
