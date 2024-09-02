@@ -6,8 +6,8 @@
 
 #include"glm/vec3.hpp"
 #include"Data.h"
-#include"stb_image.h"
 
+#include"stb_image.h"
 #include <iostream>
 
 
@@ -15,9 +15,8 @@
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-
 void processInput(GLFWwindow* window);
-
+void load_image(const char* imageFile);
 
 // settings
 const unsigned int SCR_WIDTH = 800;
@@ -31,6 +30,8 @@ float lastY = 0;
 Camera camera;
 
 bool right_mouse_pressed = false;
+
+glm::vec3 lightPos(1.2f, 0.0f, -1.0f);
 
 int main()
 {
@@ -70,80 +71,32 @@ int main()
     glEnable(GL_DEPTH_TEST);
 
 
-    Shader shader("Shaders/Vertex.shader", "Shaders/Fragment.Shader");
+    Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.Shader");
+    Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
 
 	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
-    unsigned int VBO, VAO, IBO;
+    unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
+
     glGenBuffers(1, &VBO);
-	glGenBuffers(1, &IBO);
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-    glBindVertexArray(VAO);
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
+    glBindVertexArray(VAO);
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // texture attribute
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*) (3 * sizeof(float)));
-    glEnableVertexAttribArray(1);
-
-
-
-    // 生成纹理
-    unsigned int texture1;
-    glGenTextures(1, &texture1);
-    glBindTexture(GL_TEXTURE_2D, texture1);
-    // 为当前绑定的纹理对象设置环绕、过滤方式
-    /*
-	GL_TEXTURE_WRAP_S GL_TEXTURE_WRAP_T 对纹理图片的S T轴进行环绕和过滤
-	GL_TEXTURE_MIN_FILTER GL_TEXTURE_MIN_FILTER 纹理图片放大缩小的过滤方式
-    GL_LINEAR 纹理线性插值
-    */
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // 加载并生成纹理
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load("res/wall.jpg", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-    unsigned int texture2;
-	glGenTextures(1, &texture2);
-	glBindTexture(GL_TEXTURE_2D, texture2);
-	// 为当前绑定的纹理对象设置环绕、过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    // 加载并生成纹理
-    data = stbi_load("res/container.jpg", &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
+    // 光源
+    unsigned int lightVAO;
+	glGenVertexArrays(1, &lightVAO);
+    glBindVertexArray(lightVAO);
+	// VBO 存放箱子的位置数据
+    glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
 
 
 	// ImGui 初始化
@@ -155,13 +108,7 @@ int main()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
 
-    bool checkbox = true;
 
-
-    // 设置shader中纹理单元
-    shader.UseProgram();
-    shader.SetInt("texture1", 0);
-    shader.SetInt("texture2", 1);
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -181,50 +128,44 @@ int main()
         // 清楚深度缓冲
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        // draw our first triangle
-        shader.UseProgram();
-        // bind textures on corresponding texture units
-        // 激活纹理，绑定两种纹理贴图
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-        glBindVertexArray(VAO); // seeing as we only have a single VAO there's no need to bind it every time, but we'll do so to keep things a bit more organized
-
 
         currentTime = glfwGetTime();
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         camera.KeyboardMoveCamera(window, deltaTime);
+        
+        shader.UseProgram();
+        shader.SetVec3f("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
+        shader.SetVec3f("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
 
-        // 设置shader中 图片移动
-        glm::mat4 proj(1.0f);
+        glm::mat4 model(1.0f);
+		glm::mat4 view = camera.GetViewMatrix();
+		glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		shader.SetMat4("model", model);
+		shader.SetMat4("view", view);
+		shader.SetMat4("projection", projection);
+
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
 
 
-        glm::mat4 view = camera.GetViewMatrix();
-        proj = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        lightShader.UseProgram();
+        lightShader.SetMat4("view", view);
+        lightShader.SetMat4("projection", projection);
 
-        shader.SetMat4("view", view);
-        shader.SetMat4("proj", proj);
+        model = glm::mat4(1.0f);
+		model = glm::translate(model, lightPos);
+		model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+		lightShader.SetMat4("model", model);
+		glBindVertexArray(lightVAO);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-
-        if (checkbox)
-            for (int i = 0; i < 10; i++) {
-                glm::mat4 model(1.0f);
-                model = glm::translate(model, cubePositions[i]);
-                model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(1.0f, 0.3f, 0.5f));
-                shader.SetMat4("model", model);
-                glDrawArrays(GL_TRIANGLES, 0, 36);
-
-            }
-            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 
         float FOV = camera.GetFOV();
 
         // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
         ImGui::Text("heelo the adventurer!");
-        ImGui::Checkbox("Draw", &checkbox);
         ImGui::SliderFloat("FOV", &FOV, 25.0f, 90.0f);
         camera.SetFOV(FOV);
         ImGui::End();
@@ -310,4 +251,20 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn) {
 
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.MouseSrollCameraView(static_cast<float>(yoffset));
+}
+
+void load_image(const char* imageFile) {
+    // 加载并生成纹理
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load(imageFile, &width, &height, &nrChannels, 0);
+    if (data)
+    {
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        glGenerateMipmap(GL_TEXTURE_2D);
+    }
+    else
+    {
+        std::cout << "Failed to load texture" << std::endl;
+    }
+    stbi_image_free(data);
 }

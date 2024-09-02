@@ -82,7 +82,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_IMAGE_IMPLEMENTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm;F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -99,7 +99,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_IMAGE_IMPLEMENTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm;F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -116,7 +116,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_IMAGE_IMPLEMENTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm;C:\Users\Administrator\Desktop\Op\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm;F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -133,7 +133,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_IMAGE_IMPLEMENTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm;F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -173,12 +173,14 @@
     <ClInclude Include="ImGui\MyImGui.h" />
     <ClInclude Include="Shaders\Shader.h" />
     <ClInclude Include="Data.h" />
+    <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Texture\Texture.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Fragment.Shader" />
-    <None Include="Shaders\Vertex.shader" />
+    <None Include="Shaders\shaderSource\Fragment.Shader" />
+    <None Include="Shaders\shaderSource\LightVertexShader.shader" />
+    <None Include="Shaders\shaderSource\Vertex.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\awesomeface.png" />

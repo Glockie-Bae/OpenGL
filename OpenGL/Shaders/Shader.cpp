@@ -1,6 +1,5 @@
 #include "Shader.h"
 
-
 Shader::Shader(const char* vertexPath, const char* fragmentPath)
 {
 	std::string vertexCode;
@@ -88,6 +87,11 @@ void Shader::SetMat4(const std::string& name, glm::mat4 trans) const
 	glUniformMatrix4fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, GL_FALSE, glm::value_ptr(trans));
 }
 
+void Shader::SetVec3f(const std::string& name, glm::vec3 vec) const
+{
+	glUniform3f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y, vec.z);
+}
+
 void Shader::DeleteProgram()
 {
 	glDeleteProgram(m_ShaderProgram);
@@ -96,6 +100,17 @@ void Shader::DeleteProgram()
 unsigned int Shader::GetID() const
 {
 	return m_ShaderProgram;
+}
+
+void Shader::BindTexture(unsigned int& textureID)
+{
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	// 为当前绑定的纹理对象设置环绕、过滤方式
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void Shader::checkCompileErrors(unsigned int shader, std::string type)

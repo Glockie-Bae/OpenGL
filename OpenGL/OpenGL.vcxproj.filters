@@ -107,10 +107,14 @@
     <ClInclude Include="Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Shaders\Vertex.shader" />
-    <None Include="Shaders\Fragment.Shader" />
+    <None Include="Shaders\shaderSource\Vertex.shader" />
+    <None Include="Shaders\shaderSource\Fragment.Shader" />
+    <None Include="Shaders\shaderSource\LightVertexShader.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">
