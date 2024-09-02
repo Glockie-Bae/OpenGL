@@ -116,12 +116,12 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>STB_IMAGE_IMPLEMENTATION</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Sorrow\Desktop\Vendor\include;ImGui;C:\Users\Sorrow\Desktop\Vendor\glm;C:\Users\Administrator\Desktop\Op\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\Sorrow\Desktop\Vendor\libs\glfw</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>C:\Users\Sorrow\Desktop\Vendor\libs\glfw;C:\Users\Administrator\Desktop\Op\include\lib-vc2022</AdditionalLibraryDirectories>
       <AdditionalDependencies>glfw3.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
