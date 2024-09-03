@@ -12,6 +12,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include"Light/Light.h"
+
+
 struct Material{
 
     // 物体吸收的光线
@@ -24,16 +27,6 @@ struct Material{
     Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess);
 };
 
-struct Light {
-
-    // 光源发射的光线
-    // (0.0f, 0.0f, 1.0f) 表示光只发射蓝色光线
-    glm::vec3 ambient;
-    glm::vec3 diffuse;
-    glm::vec3 specular;
-
-    Light(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular);
-};
 
 class Shader
 {
@@ -59,6 +52,7 @@ public:
 	// uniform material
     void SetMaterial(const std::string& name, Material mateial) const;
     void SetLight(const std::string& name, Light light) const;
+	void SetPointLight(const std::string& name, PointLight light) const;
 
     
     // 删除程序

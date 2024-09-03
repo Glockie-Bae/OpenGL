@@ -156,6 +156,7 @@
     <ClCompile Include="ImGui\imgui_tables.cpp" />
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="ImGui\MyImGui.cpp" />
+    <ClCompile Include="Light\Light.cpp" />
     <ClCompile Include="Shaders\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -170,6 +171,7 @@
     <ClInclude Include="ImGui\imstb_textedit.h" />
     <ClInclude Include="ImGui\imstb_truetype.h" />
     <ClInclude Include="ImGui\MyImGui.h" />
+    <ClInclude Include="Light\Light.h" />
     <ClInclude Include="Shaders\Shader.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />

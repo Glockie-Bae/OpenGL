@@ -120,6 +120,11 @@ float Camera::GetFOV() const
 	return m_Zoom;
 }
 
+glm::vec3 Camera::GetFront() const
+{
+	return m_CameraFront;
+}
+
 void Camera::SetFOV(float FOV)
 {
 	m_Zoom = FOV;

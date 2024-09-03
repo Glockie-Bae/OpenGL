@@ -6,6 +6,7 @@
 
 #include"glm/vec3.hpp"
 #include"Data.h"
+#include"Light/Light.h"
 
 #include"stb_image.h"
 #include <iostream>
@@ -29,7 +30,7 @@ Camera camera;
 
 bool right_mouse_pressed = false;
 
-glm::vec3 lightPos(1.2f, 0.0f, 2.0f);
+glm::vec3 lightPos(1.2f, 0.58f, 2.0f);
 
 int main()
 {
@@ -126,8 +127,11 @@ int main()
 
     glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
-    Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 64.0f);
+    //glm::vec3(1.2f, 0.58f, 2.0f)
+    Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 128.0f);
     Light light(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0));
+    DirectLight directLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
+    PointLight pointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(1.2f, 0.58f, 2.0f), 1.0f, 0.09f, 0.032f);
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -162,7 +166,6 @@ int main()
 		shader.SetMat4("model", model);
 		shader.SetMat4("view", view);
 		shader.SetMat4("projection", projection);
-        shader.SetVec3f("lightPos", lightPos);
 
         // 法线矩阵
         glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
@@ -176,6 +179,9 @@ int main()
 
         // 光源
         shader.SetLight("light", light);
+        shader.SetVec3f("lightFront", camera.GetFront());
+        shader.SetPointLight("pointLight", pointLight);
+       
 
         float matrixMove = glfwGetTime();
         shader.SetFloat("matrixMove", matrixMove);
@@ -190,8 +196,19 @@ int main()
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, texture3);
 
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        for (int i = 0; i < 10; i++) {
+            glm::mat4 model = glm::mat4(1.0f);
+            model = glm::translate(model, cubePositions[i]);
+            float angle = glfwGetTime();
+            model = glm::rotate(model, glm::radians(20.0f * i * angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            shader.SetMat4("model", model);
+
+           
+
+            glBindVertexArray(VAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
 
        
         lightShader.UseProgram();
@@ -200,7 +217,7 @@ int main()
         lightShader.SetFloat("size", size);
 
         model = glm::mat4(1.0f);
-		model = glm::translate(model, lightPos);
+		model = glm::translate(model, pointLight.position);
 		model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
 		lightShader.SetMat4("model", model);
 		glBindVertexArray(lightVAO);
@@ -223,9 +240,10 @@ int main()
         ImGui::End();
 
         ImGui::Begin("Light");
-        ImGui::SliderFloat3("Light Ambient", &light.ambient[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Light Diffuse", &light.diffuse[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Light Specular", &light.specular[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Position", &pointLight.position[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Ambient", &pointLight.ambient[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Diffuse", &pointLight.diffuse[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Specular", &pointLight.specular[0], 0.0f, 1.0f);
         ImGui::End();
 
         ImGui::Render();

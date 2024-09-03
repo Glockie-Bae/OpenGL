@@ -112,6 +112,19 @@ void Shader::SetLight(const std::string& name, Light light) const
 	SetVec3f(name + ".specular", light.specular);
 }
 
+void Shader::SetPointLight(const std::string& name, PointLight light) const
+{
+	SetVec3f(name + ".position", light.position);
+	SetVec3f(name + ".ambient", light.ambient);
+	SetVec3f(name + ".diffuse", light.diffuse);
+	SetVec3f(name + ".specular", light.specular);
+	SetFloat(name + ".constant", light.constant);
+	SetFloat(name + ".linear", light.linear);
+	SetFloat(name + ".quadratic", light.quadratic);
+	SetFloat(name + ".cutOff", glm::cos(glm::radians(light.cutOff)));
+	SetFloat(name + ".outerCutOff", glm::cos(glm::radians(light.outerCutOff)));
+}
+
 void Shader::DeleteProgram()
 {
 	glDeleteProgram(m_ShaderProgram);
@@ -166,9 +179,3 @@ Material::Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, flo
 	this->shininess = shininess;
 }
 
-Light::Light(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular)
-{
-	this->ambient = ambient;
-	this->diffuse = diffuse;
-	this->specular = specular;
-}

@@ -29,6 +29,7 @@ public:
 	void updateCameraView();
 
 	float GetFOV() const ;
+	glm::vec3 GetFront() const;
 	void SetFOV(float FOV);
 	
 	void SetFirstMouse(bool IsTrue);
