@@ -121,8 +121,14 @@ void Shader::SetPointLight(const std::string& name, PointLight light) const
 	SetFloat(name + ".constant", light.constant);
 	SetFloat(name + ".linear", light.linear);
 	SetFloat(name + ".quadratic", light.quadratic);
-	SetFloat(name + ".cutOff", glm::cos(glm::radians(light.cutOff)));
-	SetFloat(name + ".outerCutOff", glm::cos(glm::radians(light.outerCutOff)));
+}
+
+void Shader::SetDirLight(const std::string& name, DirLight light) const
+{
+	SetVec3f(name + ".direction", light.direction);
+	SetVec3f(name + ".ambient", light.ambient);
+	SetVec3f(name + ".diffuse", light.diffuse);
+	SetVec3f(name + ".specular", light.specular);
 }
 
 void Shader::DeleteProgram()

@@ -52,7 +52,8 @@ public:
 	// uniform material
     void SetMaterial(const std::string& name, Material mateial) const;
     void SetLight(const std::string& name, Light light) const;
-	void SetPointLight(const std::string& name, PointLight light) const;
+    void SetPointLight(const std::string& name, PointLight light) const;
+    void SetDirLight(const std::string& name, DirLight light) const;
 
     
     // É¾³ý³ÌÐò

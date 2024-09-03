@@ -130,8 +130,8 @@ int main()
     //glm::vec3(1.2f, 0.58f, 2.0f)
     Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 128.0f);
     Light light(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0));
-    DirectLight directLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
-    PointLight pointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(1.2f, 0.58f, 2.0f), 1.0f, 0.09f, 0.032f);
+    DirLight directLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
+    PointLight pointLight(glm::vec3(0.2f),glm::vec3(0.5f), glm::vec3(1.0f), glm::vec3(1.2f, 0.3f, 2.0f), 1.0f, 0.09f, 0.032f);
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -181,6 +181,7 @@ int main()
         shader.SetLight("light", light);
         shader.SetVec3f("lightFront", camera.GetFront());
         shader.SetPointLight("pointLight", pointLight);
+        shader.SetDirLight("dirLight", directLight);
        
 
         float matrixMove = glfwGetTime();
