@@ -12,6 +12,23 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+struct Material{
+	glm::vec3 ambient;
+	glm::vec3 diffuse;
+    glm::vec3 specular;
+	float shininess;
+
+    Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess);
+};
+
+struct Light {
+    glm::vec3 ambient;
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+
+    Light(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular);
+};
+
 class Shader
 {
 public:
@@ -30,9 +47,13 @@ public:
     void SetMat4(const std::string& name, glm::mat4 trans) const;
     void SetMat3(const std::string& name, glm::mat3 trans) const;
 
-
     // uniform vector
     void SetVec3f(const std::string& name, glm::vec3 vec) const;
+
+	// uniform material
+    void SetMaterial(const std::string& name, Material mateial) const;
+    void SetLight(const std::string& name, Light light) const;
+
     
     // É¾³ý³ÌÐò
     void DeleteProgram();

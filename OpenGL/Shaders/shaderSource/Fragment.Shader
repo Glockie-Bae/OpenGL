@@ -5,10 +5,27 @@ in vec3 fragPos;
 
 out vec4 FragColor;
   
+struct Material{
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    float shininess;
+};
+
+struct Light{
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+};
+
+
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
 uniform vec3 viewPos;
+uniform Material material;
+uniform Light light;
+
 
 void main()
 
@@ -16,15 +33,16 @@ void main()
 {   
     // 环境光 : 环境光系数 * 光源
     float ambientStrength = 0.1f;
-    vec3 ambient = ambientStrength * lightColor;
-    
+    //vec3 ambient = ambientStrength * lightColor;
+    vec3 ambient = material.ambient * light.ambient ;
+
     // 漫反射光 : 漫反射系数 * 光源
     // 根据光源位置和片段位置计算光线方向
     // 利用光线方向与法向量计算漫反射系数  dot = cos 两线越近 系数越大
     vec3 nor = normalize(normal);
     vec3 lightDir = normalize(lightPos  - fragPos);
     float diff = max(dot(lightDir, nor), 0.0);
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = (diff * material.diffuse) * light.diffuse;
     
     // 镜面光 ： 镜面系数 * 光源
     // 根据视角位置和片段位置计算观察方向
@@ -32,8 +50,8 @@ void main()
     vec3 viewDir = normalize(viewPos - fragPos);
     vec3 reflectDir = reflect(-lightDir, nor);
 
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), 32);
-    vec3 specular = spec * lightColor;
+    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
+    vec3 specular = (spec * material.specular) * light.specular;
 
     FragColor = vec4((ambient + diffuse + specular) * objectColor, 1.0);
 }

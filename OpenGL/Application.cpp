@@ -19,8 +19,8 @@ void processInput(GLFWwindow* window);
 void load_image(const char* imageFile);
 
 // settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+const unsigned int SCR_WIDTH = 1280;
+const unsigned int SCR_HEIGHT = 1080;
 
 float currentTime = 0;
 float lastTime = 0;
@@ -110,6 +110,11 @@ int main()
 	ImGui_ImplOpenGL3_Init("#version 330");
 
     float size = 1.0f;
+
+    glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
+
+    Material material(glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(0.5f, 0.5f, 0.5f), 32.0f);
+    Light light(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0));
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -136,8 +141,7 @@ int main()
         camera.KeyboardMoveCamera(window, deltaTime);
         
         shader.UseProgram();
-        shader.SetVec3f("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
-        shader.SetVec3f("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
+        shader.SetVec3f("objectColor", objectColor);
 
         glm::mat4 model(1.0f);
 		glm::mat4 view = camera.GetViewMatrix();
@@ -153,6 +157,12 @@ int main()
 
         // 观察位置
         shader.SetVec3f("viewPos", camera.GetPos());
+
+        // 物体材质
+        shader.SetMaterial("material", material);
+
+        // 光源
+        shader.SetLight("light", light);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -176,9 +186,20 @@ int main()
         // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
         ImGui::Text("heelo the adventurer!");
-        ImGui::SliderFloat("FOV", &FOV, 25.0f, 90.0f);
-        camera.SetFOV(FOV);
         ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
+        ImGui::SliderFloat3("Object Color", &objectColor[0], 0.0f, 1.0f);
+        ImGui::End();
+
+        ImGui::Begin("Material");
+        ImGui::SliderFloat3("Material Ambient", &material.ambient[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Material Diffuse", &material.diffuse[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Material Specular", &material.specular[0], 0.0f, 1.0f);
+        ImGui::End();
+
+        ImGui::Begin("Light");
+        ImGui::SliderFloat3("Light Ambient", &light.ambient[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Diffuse", &light.diffuse[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Specular", &light.specular[0], 0.0f, 1.0f);
         ImGui::End();
 
         ImGui::Render();

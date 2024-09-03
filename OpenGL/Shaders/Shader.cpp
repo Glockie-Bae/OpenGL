@@ -97,6 +97,21 @@ void Shader::SetVec3f(const std::string& name, glm::vec3 vec) const
 	glUniform3f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y, vec.z);
 }
 
+void Shader::SetMaterial(const std::string& name, Material mateial) const
+{
+	SetVec3f(name + ".ambient", mateial.ambient);
+	SetVec3f(name + ".diffuse", mateial.diffuse);
+	SetVec3f(name + ".specular", mateial.specular);
+	SetFloat(name + ".shininess", mateial.shininess);
+}
+
+void Shader::SetLight(const std::string& name, Light light) const
+{
+	SetVec3f(name + ".ambient", light.ambient);
+	SetVec3f(name + ".diffuse", light.diffuse);
+	SetVec3f(name + ".specular", light.specular);
+}
+
 void Shader::DeleteProgram()
 {
 	glDeleteProgram(m_ShaderProgram);
@@ -141,4 +156,19 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
 		}
 	}
 
+}
+
+Material::Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess)
+{
+	this->ambient = ambient;
+	this->diffuse = diffuse;
+	this->specular = specular;
+	this->shininess = shininess;
+}
+
+Light::Light(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular)
+{
+	this->ambient = ambient;
+	this->diffuse = diffuse;
+	this->specular = specular;
 }
