@@ -54,9 +54,6 @@
     <ClCompile Include="Shaders\Shader.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="Texture\Texture.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="Camera.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -101,9 +98,6 @@
     <ClInclude Include="stb_image.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="Texture\Texture.h">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="Camera.h">
       <Filter>头文件</Filter>
     </ClInclude>
@@ -120,10 +114,22 @@
     <Image Include="res\wall.jpg">
       <Filter>资源文件</Filter>
     </Image>
-    <Image Include="res\awesomeface.png">
+    <Image Include="res\container.jpg">
       <Filter>资源文件</Filter>
     </Image>
-    <Image Include="res\container.jpg">
+    <Image Include="res\container2.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\container2_specular.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\container2.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\container2_specular.png">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\matrix.jpg">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

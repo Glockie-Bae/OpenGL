@@ -16,7 +16,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-void load_image(const char* imageFile);
+unsigned int load_image(const char* imageFil, Shader shader);
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -84,11 +84,14 @@ int main()
 
     glBindVertexArray(VAO);
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
+
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+    glEnableVertexAttribArray(2);
 
     // 光源
     unsigned int lightVAO;
@@ -96,9 +99,19 @@ int main()
     glBindVertexArray(lightVAO);
 	// VBO 存放箱子的位置数据
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+
+    shader.UseProgram();
+    unsigned int texture1 = load_image("res/container2.jpg", shader);
+	shader.SetInt("texture_1", 0);
+
+    unsigned int texture2 = load_image("res/container2_specular.jpg", shader);
+    shader.SetInt("texture_2", 1);
+
+    unsigned int texture3 = load_image("res/matrix.jpg", shader);
+    shader.SetInt("texture_3", 2);
 
 	// ImGui 初始化
     IMGUI_CHECKVERSION();
@@ -113,7 +126,7 @@ int main()
 
     glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
-    Material material(glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(1.0f, 0.5f, 0.31f), glm::vec3(0.5f, 0.5f, 0.5f), 32.0f);
+    Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 64.0f);
     Light light(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0));
     // render loop
     // -----------
@@ -163,6 +176,19 @@ int main()
 
         // 光源
         shader.SetLight("light", light);
+
+        float matrixMove = glfwGetTime();
+        shader.SetFloat("matrixMove", matrixMove);
+
+		// 绑定纹理
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture1);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, texture3);
 
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -269,8 +295,11 @@ void sroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.MouseSrollCameraView(static_cast<float>(yoffset));
 }
 
-void load_image(const char* imageFile) {
+unsigned int load_image(const char* imageFile, Shader shader) {
     // 加载并生成纹理
+    unsigned int texTureID;
+    shader.BindTexture(texTureID);
+
     int width, height, nrChannels;
     unsigned char* data = stbi_load(imageFile, &width, &height, &nrChannels, 0);
     if (data)
@@ -283,4 +312,6 @@ void load_image(const char* imageFile) {
         std::cout << "Failed to load texture" << std::endl;
     }
     stbi_image_free(data);
+
+    return texTureID;
 }

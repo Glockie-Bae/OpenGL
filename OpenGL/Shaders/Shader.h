@@ -13,6 +13,9 @@
 #include <glm/gtc/type_ptr.hpp>
 
 struct Material{
+
+    // 物体吸收的光线
+    // (0.0f, 0.0f, 1.0f) 表示只吸收蓝色光线
 	glm::vec3 ambient;
 	glm::vec3 diffuse;
     glm::vec3 specular;
@@ -22,6 +25,9 @@ struct Material{
 };
 
 struct Light {
+
+    // 光源发射的光线
+    // (0.0f, 0.0f, 1.0f) 表示光只发射蓝色光线
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;

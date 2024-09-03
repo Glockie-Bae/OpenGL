@@ -157,7 +157,6 @@
     <ClCompile Include="ImGui\imgui_widgets.cpp" />
     <ClCompile Include="ImGui\MyImGui.cpp" />
     <ClCompile Include="Shaders\Shader.cpp" />
-    <ClCompile Include="Texture\Texture.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -175,7 +174,6 @@
     <ClInclude Include="Data.h" />
     <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />
     <ClInclude Include="stb_image.h" />
-    <ClInclude Include="Texture\Texture.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\shaderSource\Fragment.Shader" />
@@ -183,8 +181,12 @@
     <None Include="Shaders\shaderSource\Vertex.shader" />
   </ItemGroup>
   <ItemGroup>
-    <Image Include="res\awesomeface.png" />
     <Image Include="res\container.jpg" />
+    <Image Include="res\container2.jpg" />
+    <Image Include="res\container2.png" />
+    <Image Include="res\container2_specular.jpg" />
+    <Image Include="res\container2_specular.png" />
+    <Image Include="res\matrix.jpg" />
     <Image Include="res\wall.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
