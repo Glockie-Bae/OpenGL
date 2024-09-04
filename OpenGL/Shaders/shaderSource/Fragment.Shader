@@ -65,21 +65,8 @@ uniform float matrixMove;
 
 // light
 uniform DirLight dirLight;
-uniform PointLight pointLight;
+uniform PointLight pointLight[4];
 uniform SpotLight spotLight;
-
-
-float Attenuation(PointLight pointLight, vec3 fragPos){
-    float distance = length(pointLight.position - fragPos);
-    float attenuation = (1.0) / (pointLight.constant + pointLight.linear * distance + pointLight.quadratic * distance * distance);
-    return attenuation;
-}
-
-float Intensity(float theta, float cutOff, float outerCutOff){
-    float epsilon = cutOff - outerCutOff;
-    float intensity = clamp((theta - outerCutOff) / epsilon, 0.0, 1.0);  
-    return intensity;
-}
 
 
 vec3 CalcDirLight(DirLight dirLight, vec3 normal, vec3 viewDir){
@@ -126,34 +113,37 @@ vec3 CalcPointLight(PointLight pointLight, vec3 normal, vec3 viewDir){
 }
     
 
-vec3 CalcSpotLight(SpotLight light, vec3 normal, vec3 fragPos, vec3 viewDir)
+vec3 CalcSpotLight(SpotLight spotLight, vec3 normal, vec3 viewDir)
 {
-    vec3 lightDir = normalize(light.position - fragPos);
-    // diffuse shading
-    float diff = max(dot(normal, lightDir), 0.0);
-    //// specular shading
-    vec3 reflectDir = reflect(-lightDir, normal);
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), material.shininess);
-    //// attenuation
-    float distance = length(light.position - fragPos);
-    float attenuation = 1.0 / (light.constant + light.linear * distance + light.quadratic * (distance * distance));    
-    // spotlight intensity
-    float theta = dot(lightDir, normalize(-light.direction)); 
-    float epsilon = light.cutOff - light.outerCutOff;
-    float intensity = clamp((theta - light.outerCutOff) / epsilon, 0.0, 1.0);
-    // combine results
-    vec3 ambient = light.ambient * texture(texture_1, texCoords).rgb;
-    vec3 diffuse = light.diffuse * diff * texture(texture_1, texCoords).rgb;
-    vec3 specular = light.specular * spec * texture(texture_2, texCoords).rgb;
-    //
+    vec3 lightDir = normalize(spotLight.position - fragPos);
+    float diff = max(dot(normalize(normal), lightDir), 0.0);
+    vec3 diffuse = spotLight.diffuse * diff * texture(texture_1, texCoords).rgb;
+    
+    vec3 ambient = spotLight.ambient * texture(texture_1, texCoords).rgb;
+
+
+    float spec = pow(max(dot(viewDir, reflect(-lightDir, normalize(normal))), 0.0), material.shininess);
+    vec3 specular = spotLight.specular * spec * texture(texture_2, texCoords).rgb;
+    
+    float distance = length(spotLight.position - fragPos);
+    float attenuation = (1.0) / (spotLight.constant + distance * spotLight.linear + distance * distance * spotLight.quadratic);
+
+    
+    // theta : 手电筒光源范围， 光线射向方向与直射方向的夹角
+    float theta = dot(-lightDir, normalize(spotLight.direction)); 
+    // 圆环差
+    float epsilon = spotLight.cutOff - spotLight.outerCutOff;
+    // clamp 参数将结果约束在0.0到1.0之间
+    float intensity = clamp((theta - spotLight.outerCutOff) / epsilon, 0.0, 1.0);  
+    // 计算得到光照强度 在内圆内强度为1.0  在外圆外强度为0.0  在内外圆间强度为0.0到1.0之间
+
+
     ambient *= attenuation * intensity;
     diffuse *= attenuation * intensity;
     specular *= attenuation * intensity;
     
     return (ambient + diffuse + specular);
 }
-
-
 
 
 // diffuse light from point light
@@ -171,9 +161,14 @@ void main()
 
     // 点光源
     
-    color += CalcPointLight(pointLight, normal, viewDir);
+    for(int i = 0;i < 4; i++){
+        color += CalcPointLight(pointLight[i], normal, viewDir);  
+    }
     
-        
+    
+    color += CalcSpotLight(spotLight, normal, viewDir);
+    
+
 	FragColor = vec4(color, 1.0);
    
 }

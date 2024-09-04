@@ -131,6 +131,20 @@ void Shader::SetDirLight(const std::string& name, DirLight light) const
 	SetVec3f(name + ".specular", light.specular);
 }
 
+void Shader::SetSpotLight(const std::string& name, SpotLight spotLight) const
+{
+	SetVec3f(name + ".position", spotLight.position);
+	SetVec3f(name + ".direction", spotLight.direction);
+	SetVec3f(name + ".ambient", spotLight.ambient);
+	SetVec3f(name + ".diffuse", spotLight.diffuse);
+	SetVec3f(name + ".specular", spotLight.specular);
+	SetFloat(name + ".constant", spotLight.constant);
+	SetFloat(name + ".linear", spotLight.linear);
+	SetFloat(name + ".quadratic", spotLight.quadratic);
+	SetFloat(name + ".cutOff", spotLight.cutOff);
+	SetFloat(name + ".outerCutOff", spotLight.outerCutOff);
+}
+
 void Shader::DeleteProgram()
 {
 	glDeleteProgram(m_ShaderProgram);

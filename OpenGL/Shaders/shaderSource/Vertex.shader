@@ -14,8 +14,8 @@ out vec2 texCoords;
 
 void main()
 {
-	gl_Position = projection * view * model * vec4(aPos, 1.0);
 	normal = normalMatrix * aNormal;
 	fragPos = vec3(model * vec4(aPos, 1.0));
 	texCoords = aTexCoords;
+	gl_Position = projection * view * model * vec4(aPos, 1.0);
 }

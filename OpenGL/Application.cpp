@@ -10,6 +10,7 @@
 
 #include"stb_image.h"
 #include <iostream>
+#include<vector>
 
 
 
@@ -131,7 +132,17 @@ int main()
     Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 128.0f);
     Light light(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0));
     DirLight directLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
-    PointLight pointLight(glm::vec3(0.2f),glm::vec3(0.5f), glm::vec3(1.0f), glm::vec3(1.2f, 0.3f, 2.0f), 1.0f, 0.09f, 0.032f);
+    
+    std::vector<PointLight> pointLightVec;
+    for (int i = 0; i < 4; i++) {
+        PointLight pointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f);
+
+        pointLightVec.push_back(pointLight);
+    }
+
+    SpotLight spotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f);
+
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -139,6 +150,7 @@ int main()
         // input
         // -----
         processInput(window);
+
 
 
         ImGui_ImplOpenGL3_NewFrame();
@@ -180,8 +192,13 @@ int main()
         // ¹âÔ´
         shader.SetLight("light", light);
         shader.SetVec3f("lightFront", camera.GetFront());
-        shader.SetPointLight("pointLight", pointLight);
+        shader.SetPointLight("pointLight[0]", pointLightVec[0]);
+        shader.SetPointLight("pointLight[1]", pointLightVec[1]);
         shader.SetDirLight("dirLight", directLight);
+
+
+        spotLight.Update(camera.GetPos(), camera.GetFront());
+        shader.SetSpotLight("spotLight", spotLight);
        
 
         float matrixMove = glfwGetTime();
@@ -200,13 +217,11 @@ int main()
 
         for (int i = 0; i < 10; i++) {
             glm::mat4 model = glm::mat4(1.0f);
-            model = glm::translate(model, cubePositions[i]);
             float angle = glfwGetTime();
-            model = glm::rotate(model, glm::radians(20.0f * i * angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::translate(model, cubePositions[i]);
+            
+            model = glm::rotate(model, glm::radians(20.0f * i ), glm::vec3(1.0f, 0.3f, 0.5f));
             shader.SetMat4("model", model);
-
-           
-
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
@@ -217,12 +232,19 @@ int main()
         lightShader.SetMat4("projection", projection);
         lightShader.SetFloat("size", size);
 
-        model = glm::mat4(1.0f);
-		model = glm::translate(model, pointLight.position);
-		model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-		lightShader.SetMat4("model", model);
-		glBindVertexArray(lightVAO);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+        for (int i = 0; i < 4; i++) {
+            
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, pointLightVec[i].position);
+            model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
+            lightShader.SetMat4("model", model);
+            glBindVertexArray(lightVAO);
+            glDrawArrays(GL_TRIANGLES, 0, 36);
+        }
+
+
+
+        
 
 
         float FOV = camera.GetFOV();
@@ -232,6 +254,7 @@ int main()
         ImGui::Text("heelo the adventurer!");
         ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
         ImGui::SliderFloat3("Object Color", &objectColor[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Object1 Position", &cubePositions[0][0], -10.0f, 10.0f);
         ImGui::End();
 
         ImGui::Begin("Material");
@@ -241,10 +264,8 @@ int main()
         ImGui::End();
 
         ImGui::Begin("Light");
-        ImGui::SliderFloat3("Light Position", &pointLight.position[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Light Ambient", &pointLight.ambient[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Light Diffuse", &pointLight.diffuse[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Light Specular", &pointLight.specular[0], 0.0f, 1.0f);
+        ImGui::SliderFloat3("Light Position", &pointLightVec[0].position[0], -10.0f, 10.0f);
+        ImGui::SliderFloat3("Light Position2", & pointLightVec[1].position[0], -10.0f, 10.0f);
         ImGui::End();
 
         ImGui::Render();
