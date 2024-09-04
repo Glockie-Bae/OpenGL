@@ -11,8 +11,8 @@
 
 #include"stb_image.h"
 #include <iostream>
+#include<sstream>
 #include<vector>
-
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -134,7 +134,8 @@ int main()
 
 
     LightManager lightManager;
-    lightManager.AddDirLight(DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f)));
+    DirLight* dirLight = new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
+    lightManager.AddDirLight(dirLight);
     lightManager.AddSpotLight(SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
     for (int i = 0; i < 4; i++) {
         lightManager.AddPointLight(PointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
@@ -190,9 +191,16 @@ int main()
         // ¹âÔ´
         shader.SetVec3f("lightFront", camera.GetFront());
         shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
-        shader.SetPointLight("pointLight[0]", lightManager.GetPointLight(0));
+
+
+        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
+			char* name = new char[10];
+			sprintf(name, "pointLight[%d]", i);
+			shader.SetPointLight(name, lightManager.GetPointLight(i));
+        }
+
         shader.SetPointLight("pointLight[1]", lightManager.GetPointLight(1));
-        shader.SetDirLight("dirLight", lightManager.GetDirLight(0));
+        shader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
 
 
         lightManager.GetSpotLight(0).Update(camera.GetPos(), camera.GetFront());
@@ -238,13 +246,7 @@ int main()
             glBindVertexArray(lightVAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
-
-
-        
-
-
-        float FOV = camera.GetFOV();
+ 
 
         // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
@@ -258,11 +260,24 @@ int main()
         ImGui::SliderFloat3("Material Ambient", &material.ambient[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Material Diffuse", &material.diffuse[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Material Specular", &material.specular[0], 0.0f, 1.0f);
+ 
+        
+        
         ImGui::End();
 
         ImGui::Begin("Light");
-        ImGui::SliderFloat3("Light Position", &lightManager.GetPointLight(0).position[0], -10.0f, 10.0f);
-        ImGui::SliderFloat3("Light Position2", &lightManager.GetPointLight(1).position[0], -10.0f, 10.0f);
+       
+
+        if (ImGui::Button("Add Point Light")) {
+            //lightManager.AddPointLight(PointLight());
+            
+            material.specular[0]++;
+        }
+        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
+            char* name = new char[10];
+            sprintf(name, "pointLight[%d]", i);
+            ImGui::SliderFloat3(name, &(*lightManager.GetDirLight(0)).ambient[0], -15.0f, 10.0f);
+        }
         ImGui::End();
 
         ImGui::Render();

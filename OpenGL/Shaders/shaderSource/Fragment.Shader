@@ -157,12 +157,12 @@ void main()
 	
     // 定向光
 	vec3 viewDir = normalize(viewPos - fragPos);
-    vec3 color = CalcDirLight(dirLight, normal, viewDir);
 
+    vec3 color = CalcDirLight(dirLight, normal, viewDir);
 
     // 点光源
     
-    for(int i = 0;i < pointLightNumber; i++){
+    for(int i = 0; i < pointLightNumber; i++){
         color += CalcPointLight(pointLight[i], normal, viewDir);  
     }
     

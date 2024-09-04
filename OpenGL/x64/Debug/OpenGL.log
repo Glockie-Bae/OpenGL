@@ -1,10 +1,7 @@
 ﻿  Application.cpp
 F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Shaders\Shader.h(3,10): warning C4067: 预处理器指令后有意外标记 - 应输入换行符
-F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Application.cpp(165,34): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Application.cpp(202,26): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Application.cpp(218,25): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
-  LightManager.cpp
-F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Light\LightManager.cpp(20,27): warning C4267: “return”: 从“size_t”转换到“int”，可能丢失数据
-  正在生成代码...
+F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Application.cpp(166,34): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
+F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Application.cpp(210,26): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
+F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\Application.cpp(226,25): warning C4244: “初始化”: 从“double”转换到“float”，可能丢失数据
 LINK : warning LNK4098: 默认库“MSVCRT”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
   OpenGL.vcxproj -> F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\x64\Debug\OpenGL.exe

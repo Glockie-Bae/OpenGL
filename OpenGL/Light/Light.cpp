@@ -17,6 +17,17 @@ DirLight::DirLight(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, glm
 	this->direction = direction;
 }
 
+PointLight::PointLight()
+{
+	this->ambient = glm::vec3(0.2f);
+	this->diffuse = glm::vec3(0.5f);
+	this->specular = glm::vec3(1.0f);
+	this->position = glm::vec3(0.0f, 0.0f, 0.0f);
+	this->constant = 1.0f;
+	this->linear = 0.09f;
+	this->quadratic = 0.032;
+}
+
 PointLight::PointLight(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, glm::vec3 position, float constant, float linear, float quadratic)
 {
 	this->ambient = ambient;

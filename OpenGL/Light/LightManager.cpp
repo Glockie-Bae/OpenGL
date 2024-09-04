@@ -1,6 +1,6 @@
 #include "LightManager.h"
 
-void LightManager::AddDirLight(DirLight light)
+void LightManager::AddDirLight(DirLight* light)
 {
 	m_dirLights.push_back(light);
 }
@@ -20,7 +20,7 @@ int LightManager::GetPointLightCount()
 	return m_pointLights.size();
 }
 
-DirLight LightManager::GetDirLight(unsigned int index)
+DirLight* LightManager::GetDirLight(unsigned int index)
 {
 	return m_dirLights[index];
 }
