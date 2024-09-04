@@ -64,6 +64,7 @@ uniform sampler2D texture_2;
 uniform float matrixMove;
 
 // light
+uniform int pointLightNumber;
 uniform DirLight dirLight;
 uniform PointLight pointLight[4];
 uniform SpotLight spotLight;
@@ -161,7 +162,7 @@ void main()
 
     // µ„π‚‘¥
     
-    for(int i = 0;i < 4; i++){
+    for(int i = 0;i < pointLightNumber; i++){
         color += CalcPointLight(pointLight[i], normal, viewDir);  
     }
     

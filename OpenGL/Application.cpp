@@ -7,6 +7,7 @@
 #include"glm/vec3.hpp"
 #include"Data.h"
 #include"Light/Light.h"
+#include"Light/LightManager.h"
 
 #include"stb_image.h"
 #include <iostream>
@@ -130,17 +131,14 @@ int main()
 
     //glm::vec3(1.2f, 0.58f, 2.0f)
     Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 128.0f);
-    Light light(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0));
-    DirLight directLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
-    
-    std::vector<PointLight> pointLightVec;
+
+
+    LightManager lightManager;
+    lightManager.AddDirLight(DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f)));
+    lightManager.AddSpotLight(SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
     for (int i = 0; i < 4; i++) {
-        PointLight pointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f);
-
-        pointLightVec.push_back(pointLight);
+        lightManager.AddPointLight(PointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
     }
-
-    SpotLight spotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f);
 
 
     // render loop
@@ -190,15 +188,15 @@ int main()
         shader.SetMaterial("material", material);
 
         // ¹âÔ´
-        shader.SetLight("light", light);
         shader.SetVec3f("lightFront", camera.GetFront());
-        shader.SetPointLight("pointLight[0]", pointLightVec[0]);
-        shader.SetPointLight("pointLight[1]", pointLightVec[1]);
-        shader.SetDirLight("dirLight", directLight);
+        shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
+        shader.SetPointLight("pointLight[0]", lightManager.GetPointLight(0));
+        shader.SetPointLight("pointLight[1]", lightManager.GetPointLight(1));
+        shader.SetDirLight("dirLight", lightManager.GetDirLight(0));
 
 
-        spotLight.Update(camera.GetPos(), camera.GetFront());
-        shader.SetSpotLight("spotLight", spotLight);
+        lightManager.GetSpotLight(0).Update(camera.GetPos(), camera.GetFront());
+        shader.SetSpotLight("spotLight", lightManager.GetSpotLight(0));
        
 
         float matrixMove = glfwGetTime();
@@ -232,10 +230,9 @@ int main()
         lightShader.SetMat4("projection", projection);
         lightShader.SetFloat("size", size);
 
-        for (int i = 0; i < 4; i++) {
-            
+        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
             model = glm::mat4(1.0f);
-            model = glm::translate(model, pointLightVec[i].position);
+            model = glm::translate(model, lightManager.GetPointLight(i).position);
             model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
             lightShader.SetMat4("model", model);
             glBindVertexArray(lightVAO);
@@ -264,8 +261,8 @@ int main()
         ImGui::End();
 
         ImGui::Begin("Light");
-        ImGui::SliderFloat3("Light Position", &pointLightVec[0].position[0], -10.0f, 10.0f);
-        ImGui::SliderFloat3("Light Position2", & pointLightVec[1].position[0], -10.0f, 10.0f);
+        ImGui::SliderFloat3("Light Position", &lightManager.GetPointLight(0).position[0], -10.0f, 10.0f);
+        ImGui::SliderFloat3("Light Position2", &lightManager.GetPointLight(1).position[0], -10.0f, 10.0f);
         ImGui::End();
 
         ImGui::Render();
