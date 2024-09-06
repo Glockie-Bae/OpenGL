@@ -8,11 +8,17 @@
 #include"Data.h"
 #include"Light/Light.h"
 #include"Light/LightManager.h"
+#include"Model/Model.h"
 
-#include"stb_image.h"
+#include"Mesh/Mesh.h"
+
 #include <iostream>
 #include<sstream>
 #include<vector>
+
+#define STB_IMAGE_IMPLEMENTATION
+#include"stb/stb_image.h"
+
 
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -142,6 +148,13 @@ int main()
     }
 
     bool spotLightSwitch = true;
+
+
+    const char* modelPath = "res/nanosuit/nanosuit.obj";
+
+    Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader");
+    Model ourModel(modelPath);
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -218,7 +231,7 @@ int main()
             glm::mat4 model = glm::mat4(1.0f);
             float angle = glfwGetTime();
             model = glm::translate(model, cubePositions[i]);
-            model = glm::rotate(model, glm::radians(20.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
+            //model = glm::rotate(model, glm::radians(20.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
             shader.SetMat4("model", model);
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
