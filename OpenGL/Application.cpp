@@ -134,14 +134,14 @@ int main()
 
 
     LightManager lightManager;
-    DirLight* dirLight = new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f));
-    lightManager.AddDirLight(dirLight);
-    lightManager.AddSpotLight(SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
-    for (int i = 0; i < 4; i++) {
-        lightManager.AddPointLight(PointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
+    lightManager.AddDirLight(new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f)));
+
+    lightManager.AddSpotLight(new SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
+    for (int i = 0; i < 1; i++) {
+        lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
     }
 
-
+    bool spotLightSwitch = true;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -171,16 +171,10 @@ int main()
         shader.UseProgram();
         shader.SetVec3f("objectColor", objectColor);
 
-        glm::mat4 model(1.0f);
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		shader.SetMat4("model", model);
 		shader.SetMat4("view", view);
 		shader.SetMat4("projection", projection);
-
-        // 法线矩阵
-        glm::mat3 normalMatrix = glm::mat3(glm::transpose(glm::inverse(model)));
-        shader.SetMat3("normalMatrix", normalMatrix);
 
         // 观察位置
         shader.SetVec3f("viewPos", camera.GetPos());
@@ -191,20 +185,19 @@ int main()
         // 光源
         shader.SetVec3f("lightFront", camera.GetFront());
         shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
-
+        shader.SetBool("spotLightSwitch", spotLightSwitch);
 
         for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
 			char* name = new char[10];
 			sprintf(name, "pointLight[%d]", i);
-			shader.SetPointLight(name, lightManager.GetPointLight(i));
+			shader.SetPointLight(name, *lightManager.GetPointLight(i));
         }
 
-        shader.SetPointLight("pointLight[1]", lightManager.GetPointLight(1));
         shader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
 
 
-        lightManager.GetSpotLight(0).Update(camera.GetPos(), camera.GetFront());
-        shader.SetSpotLight("spotLight", lightManager.GetSpotLight(0));
+        (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
+        shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0));
        
 
         float matrixMove = glfwGetTime();
@@ -220,13 +213,12 @@ int main()
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, texture3);
 
-
+        glBindVertexArray(VAO);
         for (int i = 0; i < 10; i++) {
             glm::mat4 model = glm::mat4(1.0f);
             float angle = glfwGetTime();
             model = glm::translate(model, cubePositions[i]);
-            
-            model = glm::rotate(model, glm::radians(20.0f * i ), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::rotate(model, glm::radians(20.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
             shader.SetMat4("model", model);
             glBindVertexArray(VAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -239,10 +231,10 @@ int main()
         lightShader.SetFloat("size", size);
 
         for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, lightManager.GetPointLight(i).position);
-            model = glm::scale(model, glm::vec3(0.2f)); // a smaller cube
-            lightShader.SetMat4("model", model);
+            glm::mat4 lightModel = glm::mat4(1.0f);
+            lightModel = glm::translate(lightModel, (*lightManager.GetPointLight(i)).position);
+            lightModel = glm::scale(lightModel, glm::vec3(0.2f)); // a smaller cube
+            lightShader.SetMat4("model", lightModel);
             glBindVertexArray(lightVAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
@@ -252,6 +244,7 @@ int main()
         ImGui::Begin("My name is window, ImGui window!");
         ImGui::Text("heelo the adventurer!");
         ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
+        ImGui::SliderFloat3("DirLight Direction", &(*lightManager.GetDirLight(0)).direction[0], -10.f, 10.0f);
         ImGui::SliderFloat3("Object Color", &objectColor[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Object1 Position", &cubePositions[0][0], -10.0f, 10.0f);
         ImGui::End();
@@ -269,14 +262,18 @@ int main()
        
 
         if (ImGui::Button("Add Point Light")) {
-            //lightManager.AddPointLight(PointLight());
+            lightManager.AddPointLight(new PointLight());
+            shader.UseProgram();
+            shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
+        }
             
-            material.specular[0]++;
+        if (ImGui::Button("SpotLight Switch")) {
+            spotLightSwitch = !spotLightSwitch;
         }
         for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
             char* name = new char[10];
             sprintf(name, "pointLight[%d]", i);
-            ImGui::SliderFloat3(name, &(*lightManager.GetDirLight(0)).ambient[0], -15.0f, 10.0f);
+            ImGui::SliderFloat3(name, &(*lightManager.GetPointLight(i)).position[0], -15.0f, 10.0f);
         }
         ImGui::End();
 

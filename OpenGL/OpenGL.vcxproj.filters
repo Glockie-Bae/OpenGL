@@ -63,6 +63,12 @@
     <ClCompile Include="Light\LightManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Mesh\Mesh.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Model\Model.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -114,6 +120,12 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Light\LightManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Mesh\Mesh.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Model\Model.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

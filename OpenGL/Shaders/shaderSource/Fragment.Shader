@@ -68,6 +68,7 @@ uniform int pointLightNumber;
 uniform DirLight dirLight;
 uniform PointLight pointLight[4];
 uniform SpotLight spotLight;
+uniform bool spotLightSwitch;
 
 
 vec3 CalcDirLight(DirLight dirLight, vec3 normal, vec3 viewDir){
@@ -79,7 +80,7 @@ vec3 CalcDirLight(DirLight dirLight, vec3 normal, vec3 viewDir){
     
 	vec3 nor = normalize(normal);
 	vec3 lightDir = normalize(-dirLight.direction);
-	float diff = max(dot(lightDir, nor), 0.0);
+	float diff = max(dot(nor, lightDir), 0.0);
     
     
     
@@ -161,13 +162,15 @@ void main()
     vec3 color = CalcDirLight(dirLight, normal, viewDir);
 
     // µ„π‚‘¥
-    
     for(int i = 0; i < pointLightNumber; i++){
         color += CalcPointLight(pointLight[i], normal, viewDir);  
     }
     
+    if(spotLightSwitch){
+        color += CalcSpotLight(spotLight, normal, viewDir);
+    }
     
-    color += CalcSpotLight(spotLight, normal, viewDir);
+	
     
 
 	FragColor = vec4(color, 1.0);
