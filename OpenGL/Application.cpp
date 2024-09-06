@@ -149,11 +149,11 @@ int main()
 
     bool spotLightSwitch = true;
 
-
     const char* modelPath = "res/nanosuit/nanosuit.obj";
 
     Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader");
     Model ourModel(modelPath);
+    float modelSize = 0.01f;
 
     // render loop
     // -----------
@@ -251,7 +251,22 @@ int main()
             glBindVertexArray(lightVAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
- 
+
+        // modelShader
+        modelShader.UseProgram();
+        // view/projection transformations
+        glm::mat4 modelprojection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 modelview = camera.GetViewMatrix();
+        modelShader.SetMat4("projection", modelprojection);
+        modelShader.SetMat4("view", modelview);
+        modelShader.SetFloat("modelSize", modelSize);
+
+        // render the loaded model
+        glm::mat4 model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
+        modelShader.SetMat4("model", model);
+        ourModel.Draw(modelShader);
 
         // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
@@ -267,7 +282,7 @@ int main()
         ImGui::SliderFloat3("Material Diffuse", &material.diffuse[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Material Specular", &material.specular[0], 0.0f, 1.0f);
  
-        
+        ImGui::SliderFloat("Model Size", &modelSize, 0.01, 1);
         
         ImGui::End();
 
