@@ -140,11 +140,11 @@ int main()
 
 
     LightManager lightManager;
-    lightManager.AddDirLight(new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0), glm::vec3(0.0f, 0.0f, -2.0f)));
+    lightManager.AddDirLight(new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, -2.0f)));
 
     lightManager.AddSpotLight(new SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
     for (int i = 0; i < 1; i++) {
-        lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
+        lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
     }
 
     bool spotLightSwitch = true;
@@ -153,7 +153,7 @@ int main()
 
     Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader");
     Model ourModel(modelPath);
-    float modelSize = 0.01f;
+    float modelSize = 0.1f;
 
     // render loop
     // -----------
@@ -181,64 +181,12 @@ int main()
         lastTime = currentTime;
         camera.KeyboardMoveCamera(window, deltaTime);
         
-        shader.UseProgram();
-        shader.SetVec3f("objectColor", objectColor);
+        // light shader
+        // setting light cube
+        lightShader.UseProgram();
 
 		glm::mat4 view = camera.GetViewMatrix();
 		glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-		shader.SetMat4("view", view);
-		shader.SetMat4("projection", projection);
-
-        // 观察位置
-        shader.SetVec3f("viewPos", camera.GetPos());
-
-        // 物体材质
-        shader.SetMaterial("material", material);
-
-        // 光源
-        shader.SetVec3f("lightFront", camera.GetFront());
-        shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
-        shader.SetBool("spotLightSwitch", spotLightSwitch);
-
-        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
-			char* name = new char[10];
-			sprintf(name, "pointLight[%d]", i);
-			shader.SetPointLight(name, *lightManager.GetPointLight(i));
-        }
-
-        shader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
-
-
-        (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
-        shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0));
-       
-
-        float matrixMove = glfwGetTime();
-        shader.SetFloat("matrixMove", matrixMove);
-
-		// 绑定纹理
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture1);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, texture3);
-
-        glBindVertexArray(VAO);
-        for (int i = 0; i < 10; i++) {
-            glm::mat4 model = glm::mat4(1.0f);
-            float angle = glfwGetTime();
-            model = glm::translate(model, cubePositions[i]);
-            //model = glm::rotate(model, glm::radians(20.0f * (float)glfwGetTime()), glm::vec3(1.0f, 0.3f, 0.5f));
-            shader.SetMat4("model", model);
-            glBindVertexArray(VAO);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
-        }
-
-       
-        lightShader.UseProgram();
         lightShader.SetMat4("view", view);
         lightShader.SetMat4("projection", projection);
         lightShader.SetFloat("size", size);
@@ -252,6 +200,8 @@ int main()
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
 
+
+
         // modelShader
         modelShader.UseProgram();
         // view/projection transformations
@@ -260,13 +210,37 @@ int main()
         modelShader.SetMat4("projection", modelprojection);
         modelShader.SetMat4("view", modelview);
         modelShader.SetFloat("modelSize", modelSize);
-
+        
         // render the loaded model
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
+        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.5f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
         modelShader.SetMat4("model", model);
+        modelShader.SetVec3f("lightPos", (*lightManager.GetPointLight(0)).position);
         ourModel.Draw(modelShader);
+
+        // setting light render
+        // setting direct light
+        modelShader.SetDirLight("dirLight", (*lightManager.GetDirLight(0)));
+        // setting spot light
+        modelShader.SetSpotLight("spotLight", (*lightManager.GetSpotLight(0)));
+        (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
+
+        // for loop to set point light array
+        modelShader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
+
+        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
+            char* name = new char[10];
+            sprintf(name, "pointLight[%d]", i);
+     
+            modelShader.SetPointLight(name, *lightManager.GetPointLight(0));
+        }
+
+        modelShader.SetVec3f("cameraPos", camera.GetPos());
+
+
+
+
 
         // ImGui Optional
         ImGui::Begin("My name is window, ImGui window!");
