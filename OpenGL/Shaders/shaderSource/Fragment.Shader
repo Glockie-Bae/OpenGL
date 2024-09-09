@@ -61,8 +61,6 @@ uniform Material material;
 uniform sampler2D texture_1;
 uniform sampler2D texture_2;
 
-uniform float matrixMove;
-
 // light
 uniform int pointLightNumber;
 uniform DirLight dirLight;
@@ -148,8 +146,6 @@ vec3 CalcSpotLight(SpotLight spotLight, vec3 normal, vec3 viewDir)
 }
 
 
-// diffuse light from point light
-
 
 void main()
     
@@ -169,10 +165,8 @@ void main()
     if(spotLightSwitch){
         color += CalcSpotLight(spotLight, normal, viewDir);
     }
-    
-	
-    
+   
 
-	FragColor = vec4(color, 1.0);
+	FragColor = texture(texture_1, texCoords);
    
 }

@@ -183,6 +183,8 @@
     <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\shaderSource\DepthTestFS.shader" />
+    <None Include="Shaders\shaderSource\DepthTestVS.shader" />
     <None Include="Shaders\shaderSource\Fragment.Shader" />
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
@@ -195,7 +197,9 @@
     <Image Include="res\container2.png" />
     <Image Include="res\container2_specular.jpg" />
     <Image Include="res\container2_specular.png" />
+    <Image Include="res\marble.jpg" />
     <Image Include="res\matrix.jpg" />
+    <Image Include="res\metal.jpg" />
     <Image Include="res\wall.jpg" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

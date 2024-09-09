@@ -76,10 +76,17 @@ int main()
     // -----------------------------
     // 开启深度缓冲
     glEnable(GL_DEPTH_TEST);
+    glDepthFunc(GL_LESS);
+    glEnable(GL_STENCIL_TEST);
+    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+
 
 
     Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.Shader");
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
+    Shader shaderSingleColor("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
 
 	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
     unsigned int VBO, VAO;
@@ -111,16 +118,30 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
+    // plane VAO
+    unsigned int planeVAO, planeVBO;
+    glGenVertexArrays(1, &planeVAO);
+    glGenBuffers(1, &planeVBO);
+    glBindVertexArray(planeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glBindVertexArray(0);
 
     shader.UseProgram();
-    unsigned int texture1 = load_image("res/container2.jpg", shader);
+    unsigned int texture1 = load_image("res/marble.jpg", shader);
 	shader.SetInt("texture_1", 0);
 
-    unsigned int texture2 = load_image("res/container2_specular.jpg", shader);
+    unsigned int texture2 = load_image("res/metal.jpg", shader);
     shader.SetInt("texture_2", 1);
 
-    unsigned int texture3 = load_image("res/matrix.jpg", shader);
+    unsigned int texture3 = load_image("res/metal.jpg", shader);
     shader.SetInt("texture_3", 2);
+
+ 
 
 	// ImGui 初始化
     IMGUI_CHECKVERSION();
@@ -149,12 +170,6 @@ int main()
 
     bool spotLightSwitch = true;
 
-    const char* modelPath = "res/nanosuit/nanosuit.obj";
-
-    Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader");
-    Model ourModel(modelPath);
-    float modelSize = 0.1f;
-
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -173,20 +188,127 @@ int main()
         // ------
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         // 清楚深度缓冲
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+     
 
         currentTime = glfwGetTime();
         float deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         camera.KeyboardMoveCamera(window, deltaTime);
+
+        shaderSingleColor.UseProgram();
+        glm::mat4 model(1.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        shaderSingleColor.SetMat4("view", view);
+        shaderSingleColor.SetMat4("projection", projection);
+
         
+
+        // model shader
+        shader.UseProgram();
+        shader.SetMaterial("material", material);
+        view = camera.GetViewMatrix();
+        projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        shader.SetMat4("view", view);
+        shader.SetMat4("projection", projection);
+
+        // 先绘制平面
+        glStencilMask(0x00);
+        // floor
+        glBindVertexArray(planeVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture2);
+        shader.SetMat4("model", glm::mat4(1.0f));
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+        glBindVertexArray(0);
+
+
+
+        // 1st. render pass, draw objects as normal, writing to the stencil buffer
+        // --------------------------------------------------------------------
+        glStencilFunc(GL_ALWAYS, 1, 0xFF);
+        glStencilMask(0xFF);
+        // cubes
+        glBindVertexArray(VAO);
+        // model shader texture setting
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+
+		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        shader.SetMat4("model", model);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        shader.SetMat4("model", model);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+
+        // 2nd. render pass: now draw slightly scaled versions of the objects, this time disabling stencil writing.
+         // Because the stencil buffer is now filled with several 1s. The parts of the buffer that are 1 are not drawn, thus only drawing 
+         // the objects' size differences, making it look like borders.
+         // -----------------------------------------------------------------------------------------------------------------------------
+        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+        glStencilMask(0x00);
+        glDisable(GL_DEPTH_TEST);
+        shaderSingleColor.UseProgram();
+        float scale = 1.1f;
+        // cubes
+        glBindVertexArray(VAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, texture1);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+        model = glm::scale(model, glm::vec3(scale, scale, scale));
+        shaderSingleColor.SetMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(scale, scale, scale));
+        shaderSingleColor.SetMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glStencilMask(0xFF);
+        glStencilFunc(GL_ALWAYS, 0, 0xFF);
+        glEnable(GL_DEPTH_TEST);
+ 
+
+
+        // model shader light setting
+        shader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
+		shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
+        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
+            char* name = new char[10];
+            sprintf(name, "pointLight[%d]", i);
+            shader.SetPointLight(name, *lightManager.GetPointLight(i));
+        }
+        shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0));
+        shader.SetVec3f("viewPos", camera.GetPos());
+
+
+        
+
+        
+
+
+
         // light shader
         // setting light cube
         lightShader.UseProgram();
 
-		glm::mat4 view = camera.GetViewMatrix();
-		glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+		view = camera.GetViewMatrix();
+		projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         lightShader.SetMat4("view", view);
         lightShader.SetMat4("projection", projection);
         lightShader.SetFloat("size", size);
@@ -202,41 +324,8 @@ int main()
 
 
 
-        // modelShader
-        modelShader.UseProgram();
-        // view/projection transformations
-        glm::mat4 modelprojection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 modelview = camera.GetViewMatrix();
-        modelShader.SetMat4("projection", modelprojection);
-        modelShader.SetMat4("view", modelview);
-        modelShader.SetFloat("modelSize", modelSize);
-        
-        // render the loaded model
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.5f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(1.0f, 1.0f, 1.0f));	// it's a bit too big for our scene, so scale it down
-        modelShader.SetMat4("model", model);
-        modelShader.SetVec3f("lightPos", (*lightManager.GetPointLight(0)).position);
-        ourModel.Draw(modelShader);
 
-        // setting light render
-        // setting direct light
-        modelShader.SetDirLight("dirLight", (*lightManager.GetDirLight(0)));
-        // setting spot light
-        modelShader.SetSpotLight("spotLight", (*lightManager.GetSpotLight(0)));
-        (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
 
-        // for loop to set point light array
-        modelShader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
-
-        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
-            char* name = new char[10];
-            sprintf(name, "pointLight[%d]", i);
-     
-            modelShader.SetPointLight(name, *lightManager.GetPointLight(0));
-        }
-
-        modelShader.SetVec3f("cameraPos", camera.GetPos());
 
 
 
@@ -256,7 +345,6 @@ int main()
         ImGui::SliderFloat3("Material Diffuse", &material.diffuse[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Material Specular", &material.specular[0], 0.0f, 1.0f);
  
-        ImGui::SliderFloat("Model Size", &modelSize, 0.01, 1);
         
         ImGui::End();
 
