@@ -134,6 +134,8 @@
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
     <None Include="Shaders\shaderSource\DepthTestVS.shader" />
     <None Include="Shaders\shaderSource\DepthTestFS.shader" />
+    <None Include="Shaders\shaderSource\testVertexShader.shader" />
+    <None Include="Shaders\shaderSource\testFragmentShader.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">
@@ -161,6 +163,9 @@
       <Filter>资源文件</Filter>
     </Image>
     <Image Include="res\metal.jpg">
+      <Filter>资源文件</Filter>
+    </Image>
+    <Image Include="res\blending_transparent_window.jpg">
       <Filter>资源文件</Filter>
     </Image>
   </ItemGroup>

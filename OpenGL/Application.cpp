@@ -15,6 +15,7 @@
 #include <iostream>
 #include<sstream>
 #include<vector>
+#include<map>
 
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb/stb_image.h"
@@ -25,7 +26,7 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-unsigned int load_image(const char* imageFil, Shader shader);
+unsigned int load_image(const char* imageFile);
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -76,10 +77,14 @@ int main()
     // -----------------------------
     // 开启深度缓冲
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
+    /*glDepthFunc(GL_LESS);
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);*/
+
+    // 开启混合
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 
 
@@ -96,25 +101,24 @@ int main()
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
 
     glBindVertexArray(VAO);
     // position attribute
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
     glEnableVertexAttribArray(1);
-
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
 
     // 光源
-    unsigned int lightVAO;
+    unsigned int lightVAO, lightVBO;
 	glGenVertexArrays(1, &lightVAO);
     glBindVertexArray(lightVAO);
+    glGenBuffers(1, &lightVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	// VBO 存放箱子的位置数据
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
@@ -131,14 +135,30 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
     glBindVertexArray(0);
 
+
+    // setting window
+    unsigned int glassVAO, glassVBO;
+    glGenVertexArrays(1, &glassVAO);
+    glGenBuffers(1, & glassVBO);
+    glBindVertexArray(glassVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, glassVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), &transparentVertices, GL_STATIC_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+	glBindVertexArray(0);
+
+
     shader.UseProgram();
-    unsigned int texture1 = load_image("res/marble.jpg", shader);
+    unsigned int cubeTexture = load_image("res/marble.jpg");
 	shader.SetInt("texture_1", 0);
 
-    unsigned int texture2 = load_image("res/metal.jpg", shader);
+    unsigned int floorTexture = load_image("res/metal.jpg");
     shader.SetInt("texture_2", 1);
 
-    unsigned int texture3 = load_image("res/metal.jpg", shader);
+    unsigned int glassTexture = load_image("res/blending_transparent_window.png");
     shader.SetInt("texture_3", 2);
 
  
@@ -169,6 +189,7 @@ int main()
     }
 
     bool spotLightSwitch = true;
+    bool isStencilTest = false;
 
     // render loop
     // -----------
@@ -188,8 +209,11 @@ int main()
         // ------
         glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         // 清楚深度缓冲
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-     
+        if (isStencilTest) {
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+        }
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
 
         currentTime = glfwGetTime();
         float deltaTime = currentTime - lastTime;
@@ -218,28 +242,22 @@ int main()
         // floor
         glBindVertexArray(planeVAO);
         glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture2);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture2);
+        glBindTexture(GL_TEXTURE_2D, floorTexture);
         shader.SetMat4("model", glm::mat4(1.0f));
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glBindVertexArray(0);
 
 
+        if (isStencilTest) {
+            // 1st. render pass, draw objects as normal, writing to the stencil buffer
+            // --------------------------------------------------------------------
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+            glStencilMask(0xFF);
+        }
 
-        // 1st. render pass, draw objects as normal, writing to the stencil buffer
-        // --------------------------------------------------------------------
-        glStencilFunc(GL_ALWAYS, 1, 0xFF);
-        glStencilMask(0xFF);
         // cubes
         glBindVertexArray(VAO);
         // model shader texture setting
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture1);
+        glBindTexture(GL_TEXTURE_2D, cubeTexture);
 
 		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
         shader.SetMat4("model", model);
@@ -252,37 +270,29 @@ int main()
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
 
-        // 2nd. render pass: now draw slightly scaled versions of the objects, this time disabling stencil writing.
-         // Because the stencil buffer is now filled with several 1s. The parts of the buffer that are 1 are not drawn, thus only drawing 
-         // the objects' size differences, making it look like borders.
-         // -----------------------------------------------------------------------------------------------------------------------------
-        glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-        glStencilMask(0x00);
-        glDisable(GL_DEPTH_TEST);
-        shaderSingleColor.UseProgram();
-        float scale = 1.1f;
-        // cubes
-        glBindVertexArray(VAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, texture1);
 
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, texture1);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
-        model = glm::scale(model, glm::vec3(scale, scale, scale));
-        shaderSingleColor.SetMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(scale, scale, scale));
-        shaderSingleColor.SetMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-        glStencilMask(0xFF);
-        glStencilFunc(GL_ALWAYS, 0, 0xFF);
-        glEnable(GL_DEPTH_TEST);
- 
+        // setting window glass
+
+        glBindVertexArray(glassVAO);
+        glBindTexture(GL_TEXTURE_2D, glassTexture);
+
+        std::map<float, glm::vec3> renderList;
+        for (int i = 0; i < vegetation.size(); i++) {
+            float distance = glm::length(camera.GetPos() - vegetation[i]);
+			renderList[distance] = vegetation[i];
+        }
+        for (auto it = renderList.rbegin(); it!=renderList.rend(); it++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, (*it).second);
+            shader.SetMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+
+        if (isStencilTest) {
+            shader.SetBool("IsStencilTest", isStencilTest);
+            shaderSingleColor.StencilTest(VAO, cubeTexture);
+        }
 
 
         // model shader light setting
@@ -293,15 +303,10 @@ int main()
             sprintf(name, "pointLight[%d]", i);
             shader.SetPointLight(name, *lightManager.GetPointLight(i));
         }
-        shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0));
         shader.SetVec3f("viewPos", camera.GetPos());
-
-
-        
-
-        
-
-
+        // setting spotlight
+        shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0), spotLightSwitch);
+        (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
 
         // light shader
         // setting light cube
@@ -325,38 +330,19 @@ int main()
 
 
 
-
-
-
-
-
-
         // ImGui Optional
-        ImGui::Begin("My name is window, ImGui window!");
-        ImGui::Text("heelo the adventurer!");
-        ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
-        ImGui::SliderFloat3("DirLight Direction", &(*lightManager.GetDirLight(0)).direction[0], -10.f, 10.0f);
-        ImGui::SliderFloat3("Object Color", &objectColor[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Object1 Position", &cubePositions[0][0], -10.0f, 10.0f);
-        ImGui::End();
-
         ImGui::Begin("Material");
         ImGui::SliderFloat3("Material Ambient", &material.ambient[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Material Diffuse", &material.diffuse[0], 0.0f, 1.0f);
         ImGui::SliderFloat3("Material Specular", &material.specular[0], 0.0f, 1.0f);
- 
-        
         ImGui::End();
 
         ImGui::Begin("Light");
-       
-
         if (ImGui::Button("Add Point Light")) {
             lightManager.AddPointLight(new PointLight());
             shader.UseProgram();
             shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
         }
-            
         if (ImGui::Button("SpotLight Switch")) {
             spotLightSwitch = !spotLightSwitch;
         }
@@ -367,6 +353,12 @@ int main()
         }
         ImGui::End();
 
+        ImGui::Begin("Test");
+        if (ImGui::Button("isStencilTest")) {
+            isStencilTest = !isStencilTest;
+        }
+
+        ImGui::End();
         ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
          
@@ -434,17 +426,35 @@ void sroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.MouseSrollCameraView(static_cast<float>(yoffset));
 }
 
-unsigned int load_image(const char* imageFile, Shader shader) {
+unsigned int load_image(const char* imageFile) {
     // 加载并生成纹理
     unsigned int texTureID;
-    shader.BindTexture(texTureID);
+    glGenTextures(1, &texTureID);
 
     int width, height, nrChannels;
     unsigned char* data = stbi_load(imageFile, &width, &height, &nrChannels, 0);
     if (data)
     {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+        GLenum format;
+        if (nrChannels == 1)
+            format = GL_RED;
+        if (nrChannels == 3)
+            format = GL_RGB;
+        if (nrChannels == 4) {
+            format = GL_RGBA;
+			std::cout << imageFile << " RGBA" << std::endl;
+        }
+
+
+        glBindTexture(GL_TEXTURE_2D, texTureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
         glGenerateMipmap(GL_TEXTURE_2D);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
     }
     else
     {

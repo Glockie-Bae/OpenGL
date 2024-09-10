@@ -131,7 +131,7 @@ void Shader::SetDirLight(const std::string& name, DirLight light) const
 	SetVec3f(name + ".specular", light.specular);
 }
 
-void Shader::SetSpotLight(const std::string& name, SpotLight spotLight) const
+void Shader::SetSpotLight(const std::string& name, SpotLight spotLight, bool spotLightSwitch) const
 {
 	SetVec3f(name + ".position", spotLight.position);
 	SetVec3f(name + ".direction", spotLight.direction);
@@ -143,6 +143,8 @@ void Shader::SetSpotLight(const std::string& name, SpotLight spotLight) const
 	SetFloat(name + ".quadratic", spotLight.quadratic);
 	SetFloat(name + ".cutOff", spotLight.cutOff);
 	SetFloat(name + ".outerCutOff", spotLight.outerCutOff);
+
+	SetBool("spotLightSwitch", spotLightSwitch);
 }
 
 void Shader::DeleteProgram()
@@ -164,6 +166,38 @@ void Shader::BindTexture(unsigned int& textureID)
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+}
+
+void Shader::StencilTest(unsigned int VAO, unsigned int texture)
+{
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+	glStencilMask(0x00);
+	glDisable(GL_DEPTH_TEST);
+	UseProgram();
+	float scale = 1.1f;
+
+	// cubes
+	glBindVertexArray(VAO);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	glm::mat4 model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+	model = glm::scale(model, glm::vec3(scale, scale, scale));
+	SetMat4("model", model);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	model = glm::mat4(1.0f);
+	model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
+	model = glm::scale(model, glm::vec3(scale, scale, scale));
+	SetMat4("model", model);
+	glDrawArrays(GL_TRIANGLES, 0, 36);
+	glBindVertexArray(0);
+	glStencilMask(0xFF);
+	glStencilFunc(GL_ALWAYS, 0, 0xFF);
+	glEnable(GL_DEPTH_TEST);
 }
 
 void Shader::checkCompileErrors(unsigned int shader, std::string type)

@@ -189,9 +189,12 @@
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
     <None Include="Shaders\shaderSource\ModelVertexShader.shader" />
+    <None Include="Shaders\shaderSource\testFragmentShader.shader" />
+    <None Include="Shaders\shaderSource\testVertexShader.shader" />
     <None Include="Shaders\shaderSource\Vertex.shader" />
   </ItemGroup>
   <ItemGroup>
+    <Image Include="res\blending_transparent_window.jpg" />
     <Image Include="res\container.jpg" />
     <Image Include="res\container2.jpg" />
     <Image Include="res\container2.png" />

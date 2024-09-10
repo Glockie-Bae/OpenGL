@@ -68,6 +68,10 @@ uniform PointLight pointLight[4];
 uniform SpotLight spotLight;
 uniform bool spotLightSwitch;
 
+// test
+
+uniform bool IsStencilTest;
+
 
 vec3 CalcDirLight(DirLight dirLight, vec3 normal, vec3 viewDir){
     vec3 ambient = texture(texture_1, texCoords).rgb * dirLight.ambient;
@@ -166,7 +170,10 @@ void main()
         color += CalcSpotLight(spotLight, normal, viewDir);
     }
    
-
-	FragColor = texture(texture_1, texCoords);
-   
+   if(IsStencilTest){
+	    FragColor = texture(texture_1, texCoords);
+   }
+   else{
+	    FragColor = texture(texture_1, texCoords);
+   }
 }

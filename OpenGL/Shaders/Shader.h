@@ -56,7 +56,7 @@ public:
     void SetLight(const std::string& name, Light light) const;
     void SetPointLight(const std::string& name, PointLight light) const;
     void SetDirLight(const std::string& name, DirLight light) const;
-    void SetSpotLight(const std::string& name, SpotLight spotLight) const;
+    void SetSpotLight(const std::string& name, SpotLight spotLight, bool spotLightSwitch) const;
     
     // É¾³ý³ÌÐò
     void DeleteProgram();
@@ -65,6 +65,9 @@ public:
 
     // texture
 	void BindTexture(unsigned int& textureID);
+
+    //GL_STENCIL_TEST
+	void StencilTest(unsigned int VAO, unsigned int texture);
 
 private:
 	void checkCompileErrors(unsigned int shader, std::string type);
