@@ -77,14 +77,23 @@ int main()
     // -----------------------------
     // 开启深度缓冲
     glEnable(GL_DEPTH_TEST);
-    /*glDepthFunc(GL_LESS);
+    glDepthFunc(GL_LESS);
+
+	// 开启模板测试
     glEnable(GL_STENCIL_TEST);
     glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);*/
+    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
     // 开启混合
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    // 开启面剔除
+	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
+	glFrontFace(GL_CW);
+
+
 
 
 
@@ -172,7 +181,7 @@ int main()
 	ImGui_ImplGlfw_InitForOpenGL(window, true);
 	ImGui_ImplOpenGL3_Init("#version 330");
 
-    float size = 1.0f;
+    float size = 0.1f;
 
     glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
 
@@ -190,6 +199,7 @@ int main()
 
     bool spotLightSwitch = true;
     bool isStencilTest = false;
+    bool glass = true;
 
     // render loop
     // -----------
@@ -275,12 +285,14 @@ int main()
 
         glBindVertexArray(glassVAO);
         glBindTexture(GL_TEXTURE_2D, glassTexture);
+        shader.SetBool("glass", glass);
 
         std::map<float, glm::vec3> renderList;
         for (int i = 0; i < vegetation.size(); i++) {
             float distance = glm::length(camera.GetPos() - vegetation[i]);
 			renderList[distance] = vegetation[i];
         }
+
         for (auto it = renderList.rbegin(); it!=renderList.rend(); it++)
         {
             model = glm::mat4(1.0f);
@@ -346,6 +358,7 @@ int main()
         if (ImGui::Button("SpotLight Switch")) {
             spotLightSwitch = !spotLightSwitch;
         }
+        ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
         for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
             char* name = new char[10];
             sprintf(name, "pointLight[%d]", i);

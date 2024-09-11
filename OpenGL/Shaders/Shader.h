@@ -69,6 +69,7 @@ public:
     //GL_STENCIL_TEST
 	void StencilTest(unsigned int VAO, unsigned int texture);
 
+
 private:
 	void checkCompileErrors(unsigned int shader, std::string type);
     unsigned int m_ShaderProgram;
