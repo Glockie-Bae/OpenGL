@@ -189,6 +189,8 @@
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
     <None Include="Shaders\shaderSource\ModelVertexShader.shader" />
+    <None Include="Shaders\shaderSource\SkyBoxFragment.shader" />
+    <None Include="Shaders\shaderSource\SkyBoxVertex.shader" />
     <None Include="Shaders\shaderSource\testFragmentShader.shader" />
     <None Include="Shaders\shaderSource\testVertexShader.shader" />
     <None Include="Shaders\shaderSource\Vertex.shader" />

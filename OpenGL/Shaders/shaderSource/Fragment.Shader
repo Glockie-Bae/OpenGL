@@ -149,6 +149,7 @@ vec3 CalcSpotLight(SpotLight spotLight, vec3 normal, vec3 viewDir)
     return (ambient + diffuse + specular);
 }
 
+uniform samplerCube skybox;
 
 
 void main()
@@ -174,6 +175,11 @@ void main()
 	    FragColor = texture(texture_1, texCoords);
    }
    else{
-	    FragColor = texture(texture_1, texCoords);
+
+        vec3 I = normalize(fragPos - viewPos);
+        vec3 R = reflect(I, normalize(normal));
+        
+        FragColor = vec4(texture(skybox, R).rgb, 1.0);
+	    //FragColor = texture(texture_1, texCoords);
    }
 }

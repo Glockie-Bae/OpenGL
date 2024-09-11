@@ -27,6 +27,7 @@ void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
 unsigned int load_image(const char* imageFile);
+unsigned int loadCubemap(std::vector<std::string> faces);
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -75,32 +76,11 @@ int main()
 
     // configure global opengl state
     // -----------------------------
-    // 开启深度缓冲
     glEnable(GL_DEPTH_TEST);
-    glDepthFunc(GL_LESS);
-
-	// 开启模板测试
-    glEnable(GL_STENCIL_TEST);
-    glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
-    glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-    // 开启混合
-    glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
-    // 开启面剔除
-	glEnable(GL_CULL_FACE);
-	glCullFace(GL_BACK);
-	glFrontFace(GL_CW);
-
-
-
-
-
-
-    Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.Shader");
+    
+    Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.shader");
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
-    Shader shaderSingleColor("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
+    Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
 
 	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
     unsigned int VBO, VAO;
@@ -110,15 +90,19 @@ int main()
     // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
 
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(cubeVertices), cubeVertices, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
     glBindVertexArray(VAO);
     // position attribute
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+
 
     // 光源
     unsigned int lightVAO, lightVBO;
@@ -131,46 +115,36 @@ int main()
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
 
-    // plane VAO
-    unsigned int planeVAO, planeVBO;
-    glGenVertexArrays(1, &planeVAO);
-    glGenBuffers(1, &planeVBO);
-    glBindVertexArray(planeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), &planeVertices, GL_STATIC_DRAW);
+
+
+    // sky box VAO VBO;
+    unsigned int skyBoxVAO, skyBoxVBO;
+    glGenVertexArrays(1, &skyBoxVAO);
+    glGenBuffers(1, &skyBoxVBO);
+    glBindVertexArray(skyBoxVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, skyBoxVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-    glBindVertexArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
 
 
-    // setting window
-    unsigned int glassVAO, glassVBO;
-    glGenVertexArrays(1, &glassVAO);
-    glGenBuffers(1, & glassVBO);
-    glBindVertexArray(glassVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, glassVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(transparentVertices), &transparentVertices, GL_STATIC_DRAW);
+    std::vector<std::string> faces
+    {
+           "res/skybox/right.jpg",
+           "res/skybox/left.jpg",
+           "res/skybox/top.jpg",
+           "res/skybox/bottom.jpg",
+           "res/skybox/front.jpg",
+           "res/skybox/back.jpg"
+    };
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
-	glBindVertexArray(0);
-
+	unsigned int skyBoxTexture = loadCubemap(faces);
+    skyBoxShader.UseProgram();
+    skyBoxShader.SetInt("skybox", 0);
 
     shader.UseProgram();
-    unsigned int cubeTexture = load_image("res/marble.jpg");
-	shader.SetInt("texture_1", 0);
+    shader.SetInt("skybox", 0);
 
-    unsigned int floorTexture = load_image("res/metal.jpg");
-    shader.SetInt("texture_2", 1);
-
-    unsigned int glassTexture = load_image("res/blending_transparent_window.png");
-    shader.SetInt("texture_3", 2);
-
- 
 
 	// ImGui 初始化
     IMGUI_CHECKVERSION();
@@ -182,9 +156,6 @@ int main()
 	ImGui_ImplOpenGL3_Init("#version 330");
 
     float size = 0.1f;
-
-    glm::vec3 objectColor = glm::vec3(1.0f, 0.5f, 0.31f);
-
     //glm::vec3(1.2f, 0.58f, 2.0f)
     Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 128.0f);
 
@@ -209,19 +180,15 @@ int main()
         // -----
         processInput(window);
 
-
-
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         // render
         // ------
-        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         // 清楚深度缓冲
-        if (isStencilTest) {
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-        }
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
@@ -230,81 +197,46 @@ int main()
         lastTime = currentTime;
         camera.KeyboardMoveCamera(window, deltaTime);
 
-        shaderSingleColor.UseProgram();
-        glm::mat4 model(1.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        shaderSingleColor.SetMat4("view", view);
-        shaderSingleColor.SetMat4("projection", projection);
-
-        
 
         // model shader
         shader.UseProgram();
         shader.SetMaterial("material", material);
-        view = camera.GetViewMatrix();
-        projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         shader.SetMat4("view", view);
         shader.SetMat4("projection", projection);
-
-        // 先绘制平面
-        glStencilMask(0x00);
-        // floor
-        glBindVertexArray(planeVAO);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, floorTexture);
-        shader.SetMat4("model", glm::mat4(1.0f));
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-
-        if (isStencilTest) {
-            // 1st. render pass, draw objects as normal, writing to the stencil buffer
-            // --------------------------------------------------------------------
-            glStencilFunc(GL_ALWAYS, 1, 0xFF);
-            glStencilMask(0xFF);
-        }
+        shader.SetVec3f("viewPos", camera.GetPos());
 
         // cubes
         glBindVertexArray(VAO);
         // model shader texture setting
-        glBindTexture(GL_TEXTURE_2D, cubeTexture);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
 
-		model = glm::translate(model, glm::vec3(-1.0f, 0.0f, -1.0f));
+
+		glm::mat4 model(1.0f);
         shader.SetMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
 
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(2.0f, 0.0f, 0.0f));
-        shader.SetMat4("model", model);
-        glBindVertexArray(VAO);
+
+
+
+        // draw skybox as last
+        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
+        skyBoxShader.UseProgram();
+        view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
+        skyBoxShader.SetMat4("view", view);
+        skyBoxShader.SetMat4("projection", projection);
+        // skybox cube
+        glBindVertexArray(skyBoxVAO);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+        glDepthFunc(GL_LESS); // set depth function back to default
 
-
-        // setting window glass
-
-        glBindVertexArray(glassVAO);
-        glBindTexture(GL_TEXTURE_2D, glassTexture);
-        shader.SetBool("glass", glass);
-
-        std::map<float, glm::vec3> renderList;
-        for (int i = 0; i < vegetation.size(); i++) {
-            float distance = glm::length(camera.GetPos() - vegetation[i]);
-			renderList[distance] = vegetation[i];
-        }
-
-        for (auto it = renderList.rbegin(); it!=renderList.rend(); it++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, (*it).second);
-            shader.SetMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-
-        if (isStencilTest) {
-            shader.SetBool("IsStencilTest", isStencilTest);
-            shaderSingleColor.StencilTest(VAO, cubeTexture);
-        }
 
 
         // model shader light setting
@@ -315,10 +247,10 @@ int main()
             sprintf(name, "pointLight[%d]", i);
             shader.SetPointLight(name, *lightManager.GetPointLight(i));
         }
-        shader.SetVec3f("viewPos", camera.GetPos());
         // setting spotlight
         shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0), spotLightSwitch);
         (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
+
 
         // light shader
         // setting light cube
@@ -338,8 +270,6 @@ int main()
             glBindVertexArray(lightVAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
-
 
 
         // ImGui Optional
@@ -392,7 +322,11 @@ int main()
     // optional: de-allocate all resources once they've outlived their purpose:
     // ------------------------------------------------------------------------
     glDeleteVertexArrays(1, &VAO);
+    glDeleteVertexArrays(1, &lightVAO);
     glDeleteBuffers(1, &VBO);
+    glDeleteBuffers(1, &lightVBO);
+
+    
     shader.DeleteProgram();
     // glfw: terminate, clearing all previously allocated GLFW resources.
     // ------------------------------------------------------------------
@@ -455,7 +389,6 @@ unsigned int load_image(const char* imageFile) {
             format = GL_RGB;
         if (nrChannels == 4) {
             format = GL_RGBA;
-			std::cout << imageFile << " RGBA" << std::endl;
         }
 
 
@@ -476,4 +409,37 @@ unsigned int load_image(const char* imageFile) {
     stbi_image_free(data);
 
     return texTureID;
+
+}
+
+unsigned int loadCubemap(std::vector<std::string> faces)
+{
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, textureID);
+
+    int width, height, nrChannels;
+    for (unsigned int i = 0; i < faces.size(); i++)
+    {
+        unsigned char* data = stbi_load(faces[i].c_str(), &width, &height, &nrChannels, 0);
+        if (data)
+        {
+            glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data
+            );
+            stbi_image_free(data);
+        }
+        else
+        {
+            std::cout << "Cubemap texture failed to load at path: " << faces[i] << std::endl;
+            stbi_image_free(data);
+        }
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    return textureID;
 }

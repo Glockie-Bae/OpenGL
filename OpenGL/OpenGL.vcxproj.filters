@@ -136,6 +136,8 @@
     <None Include="Shaders\shaderSource\DepthTestFS.shader" />
     <None Include="Shaders\shaderSource\testVertexShader.shader" />
     <None Include="Shaders\shaderSource\testFragmentShader.shader" />
+    <None Include="Shaders\shaderSource\SkyBoxVertex.shader" />
+    <None Include="Shaders\shaderSource\SkyBoxFragment.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">
