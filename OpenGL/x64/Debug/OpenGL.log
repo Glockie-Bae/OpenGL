@@ -4,5 +4,6 @@ F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\OpenGL\A
 F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\OpenGL\Application.cpp(241,71): warning C4312: “类型强制转换”: 从“GLsizei”转换到更大的“void *”
 F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\OpenGL\Application.cpp(243,71): warning C4312: “类型强制转换”: 从“GLsizei”转换到更大的“void *”
 F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\OpenGL\Application.cpp(273,34): warning C4244: “=”: 从“double”转换到“float”，可能丢失数据
-F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\OpenGL\Application.cpp(300,58): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
+F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\OpenGL\Application.cpp(303,58): warning C4267: “参数”: 从“size_t”转换到“GLsizei”，可能丢失数据
+LINK : warning LNK4098: 默认库“MSVCRT”与其他库的使用冲突；请使用 /NODEFAULTLIB:library
   OpenGL.vcxproj -> F:\C++\VisualStudio\CppSeries\OpenGL\OpenGLRenderer_ImGui\OpenGL\OpenGL\x64\Debug\OpenGL.exe

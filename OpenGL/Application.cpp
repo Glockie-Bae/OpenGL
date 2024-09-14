@@ -178,7 +178,7 @@ int main()
 
 
     LightManager lightManager;
-    lightManager.AddDirLight(new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, -2.0f)));
+    lightManager.AddDirLight(new DirLight(glm::vec3(0.0f), glm::vec3(0.5f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, -2.0f)));
 
     lightManager.AddSpotLight(new SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
     for (int i = 0; i < 1; i++) {
@@ -280,6 +280,9 @@ int main()
         glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
         instanceShader.UseProgram();
+
+        instanceShader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
+        instanceShader.SetVec3f("cameraPos", camera.GetPos());
 		instanceShader.SetMat4("view", view);
 		instanceShader.SetMat4("projection", projection);
         model = glm::mat4(1.0f);
