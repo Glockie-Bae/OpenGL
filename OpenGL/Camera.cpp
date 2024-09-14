@@ -3,7 +3,7 @@
 
 Camera::Camera()
 {
-	m_CameraPos = glm::vec3(0.0f, 0.0f, 3.0f);
+	m_CameraPos = glm::vec3(0.0f, 0.0f, 115.0f);
 	m_CameraFront = glm::vec3(0.0f, 0.0f, -1.0f);
 	m_CameraWorldUp = glm::vec3(0.0f, 1.0f, 0.0f);
 
@@ -37,7 +37,7 @@ glm::vec3 Camera::GetPos()
 
 void Camera::KeyboardMoveCamera(GLFWwindow* window, float deltaTime)
 {
-	m_Speed = 2.5f * deltaTime;
+	m_Speed = 250.0f * deltaTime;
 	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
 		m_CameraPos += m_Speed * m_CameraFront;
 	}

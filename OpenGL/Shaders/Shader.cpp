@@ -1,14 +1,17 @@
 #include "Shader.h"
 
-Shader::Shader(const char* vertexPath, const char* fragmentPath)
+Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
 {
 	std::string vertexCode;
 	std::string fragmentCode;
+	std::string geometryCode;
 	std::ifstream vShaderFile;
 	std::ifstream fShaderFile;
+	std::ifstream gShaderFile;
 	// 保证ifstream对象可以抛出异常：
 	vShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 	fShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
+	gShaderFile.exceptions(std::ifstream::failbit | std::ifstream::badbit);
 
 	try
 	{
@@ -25,6 +28,16 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
 		// 转换数据流到string
 		vertexCode = vShaderStream.str();
 		fragmentCode = fShaderStream.str();
+
+		// 打开gshader文件
+		if (geometryPath != nullptr)
+		{
+			gShaderFile.open(geometryPath);
+			std::stringstream gShaderStream;
+			gShaderStream << gShaderFile.rdbuf();
+			gShaderFile.close();
+			geometryCode = gShaderStream.str();
+		}
 	}
 	catch (std::ifstream::failure e)
 	{
@@ -44,17 +57,30 @@ Shader::Shader(const char* vertexPath, const char* fragmentPath)
 	glCompileShader(vertex);
 	checkCompileErrors(vertex, "VERTEX");
 	glCompileShader(fragment);
-	checkCompileErrors(vertex, "VERTEX");
+	checkCompileErrors(fragment, "FRAGMENT");
+
+	unsigned int geometry;
+	if (geometryPath != nullptr)
+	{
+		const char* gShaderCode = geometryCode.c_str();
+		geometry = glCreateShader(GL_GEOMETRY_SHADER);
+		glShaderSource(geometry, 1, &gShaderCode, NULL);
+		glCompileShader(geometry);
+		checkCompileErrors(geometry, "GEOMETRY");
+	}
 
 	// shader 程序
 	m_ShaderProgram = glCreateProgram();
 	glAttachShader(m_ShaderProgram, vertex);
 	glAttachShader(m_ShaderProgram, fragment);
+	if (geometryPath != nullptr)
+		glAttachShader(m_ShaderProgram, geometry);
 	glLinkProgram(m_ShaderProgram);
-
-
+	checkCompileErrors(m_ShaderProgram, "PROGRAM");
 	glDeleteShader(vertex);
 	glDeleteShader(fragment);
+	if (geometryPath != nullptr)
+		glDeleteShader(geometry);
 }
 
 void Shader::UseProgram()
@@ -95,6 +121,11 @@ void Shader::SetMat3(const std::string& name, glm::mat3 trans) const
 void Shader::SetVec3f(const std::string& name, glm::vec3 vec) const
 {
 	glUniform3f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y, vec.z);
+}
+
+void Shader::SetVec2f(const std::string& name, glm::vec2 vec) const
+{
+	glUniform2f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y);
 }
 
 void Shader::SetMaterial(const std::string& name, Material mateial) const

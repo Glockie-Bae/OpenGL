@@ -82,9 +82,12 @@ int main()
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
     Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
     Shader planeShader("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
-    Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader");
+    Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader", "Shaders/shaderSource/ModelGeometryShader.shader");
+    Shader instanceShader("Shaders/shaderSource/InstanceVS.shader", "Shaders/shaderSource/InstanceFS.shader");
 
 	Model ourModel("res/nanosuit/nanosuit.obj");
+    Model planet("res/planet/planet.obj");
+    Model rock("res/rock/rock.obj");
 
 
 	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
@@ -138,7 +141,6 @@ int main()
 
 
 
-
     std::vector<std::string> faces
     {
            "res/skybox/right.jpg",
@@ -148,9 +150,6 @@ int main()
            "res/skybox/front.jpg",
            "res/skybox/back.jpg"
     };
-
-    
-
 
 	unsigned int skyBoxTexture = loadCubemap(faces);
     skyBoxShader.UseProgram();
@@ -190,6 +189,67 @@ int main()
     bool isStencilTest = false;
     bool glass = true;
 
+    // generate a large list of semi-random model transformation matrices
+    // ------------------------------------------------------------------
+    unsigned int amount = 50000;
+    glm::mat4* modelMatrices;
+    modelMatrices = new glm::mat4[amount];
+    srand(static_cast<unsigned int>(glfwGetTime())); // initialize random seed
+    float radius = 150.0;
+    float offset = 25.0f;
+    for (unsigned int i = 0; i < amount; i++)
+    {
+        glm::mat4 model = glm::mat4(1.0f);
+        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
+        float angle = (float)i / (float)amount * 360.0f;
+        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float x = sin(angle) * radius + displacement;
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float y = displacement * 0.4f; // keep height of asteroid field smaller compared to width of x and z
+        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
+        float z = cos(angle) * radius + displacement;
+        model = glm::translate(model, glm::vec3(x, y, z));
+
+        // 2. scale: Scale between 0.05 and 0.25f
+        float scale = static_cast<float>((rand() % 20) / 100.0 + 0.05);
+        model = glm::scale(model, glm::vec3(scale));
+
+        // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
+        float rotAngle = static_cast<float>((rand() % 360));
+        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
+
+        // 4. now add to list of matrices
+        modelMatrices[i] = model;
+    }
+
+    unsigned int rockVBO;
+    glGenBuffers(1, &rockVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, rockVBO);
+    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
+
+    for (unsigned int i = 0; i < rock.meshes.size(); i++)
+    {
+        unsigned int VAO = rock.meshes[i].m_VAO;
+        glBindVertexArray(VAO);
+        // 顶点属性
+        GLsizei vec4Size = sizeof(glm::vec4);
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
+        glEnableVertexAttribArray(5);
+        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
+        glEnableVertexAttribArray(6);
+        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
+
+        glVertexAttribDivisor(3, 1);
+        glVertexAttribDivisor(4, 1);
+        glVertexAttribDivisor(5, 1);
+        glVertexAttribDivisor(6, 1);
+
+        glBindVertexArray(0);
+    }
+
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -217,17 +277,42 @@ int main()
 
         glm::mat4 model(1.0f);
         glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+
+        instanceShader.UseProgram();
+		instanceShader.SetMat4("view", view);
+		instanceShader.SetMat4("projection", projection);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
+        model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+        instanceShader.SetBool("IsPlanet", 1);
+        instanceShader.SetMat4("model", model);
+        planet.Draw(instanceShader);
+
+
+        instanceShader.UseProgram();
+        // draw meteorites
+        instanceShader.SetBool("IsPlanet", 0);
+        for (unsigned int i = 0; i < rock.meshes.size(); i++)
+        {
+            glBindVertexArray(rock.meshes[i].m_VAO);
+            glDrawElementsInstanced(
+                GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount
+            );
+        }
 
         // model shader
-        modelShader.UseProgram();
+		modelShader.UseProgram();
+		model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(-1.5f, -0.5f, 0.0f));
         modelShader.SetMat4("model", model);
         modelShader.SetMat4("view", view);
         modelShader.SetMat4("projection", projection);
         modelShader.SetVec3f("cameraPos", camera.GetPos());
+        size = 0.1f;
         modelShader.SetFloat("modelSize", size);
-        ourModel.Draw(modelShader);
+        modelShader.SetFloat("time", static_cast<float>(glfwGetTime()));
+        //ourModel.Draw(modelShader);
 
         model = glm::mat4(1.0f);
         // plane shader
@@ -278,7 +363,7 @@ int main()
         glBindVertexArray(skyBoxVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
+        //glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0); 
         glDepthFunc(GL_LESS); // set depth function back to default
 

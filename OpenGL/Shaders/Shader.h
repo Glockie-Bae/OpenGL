@@ -33,7 +33,7 @@ class Shader
 public:
 
     // 构造器读取并构建着色器
-    Shader(const char* vertexPath, const char* fragmentPath);
+    Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath = nullptr);
     // 使用/激活程序
     void UseProgram();
     // uniform工具函数
@@ -48,6 +48,7 @@ public:
 
     // uniform vector
     void SetVec3f(const std::string& name, glm::vec3 vec) const;
+    void SetVec2f(const std::string& name, glm::vec2 vec) const;
 
 	// uniform material
     void SetMaterial(const std::string& name, Material mateial) const;
