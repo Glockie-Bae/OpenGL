@@ -81,25 +81,23 @@ int main()
     Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.shader");
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
     Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
+    Shader planeShader("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
+    Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader");
+
+	Model ourModel("res/nanosuit/nanosuit.obj");
+
 
 	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
     unsigned int VBO, VAO;
     glGenVertexArrays(1, &VAO);
-
     glGenBuffers(1, &VBO);
-    // bind the Vertex Array Object first, then bind and set vertex buffer(s), and then configure vertex attributes(s).
-
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
     glBindVertexArray(VAO);
-    // position attribute
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
 
@@ -116,7 +114,6 @@ int main()
     glEnableVertexAttribArray(0);
 
 
-
     // sky box VAO VBO;
     unsigned int skyBoxVAO, skyBoxVBO;
     glGenVertexArrays(1, &skyBoxVAO);
@@ -126,6 +123,20 @@ int main()
     glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+
+    unsigned int planeVAO, planeVBO;
+    glGenVertexArrays(1, &planeVAO);
+	glGenBuffers(1, &planeVBO);
+    glBindVertexArray(planeVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+
 
 
     std::vector<std::string> faces
@@ -138,12 +149,19 @@ int main()
            "res/skybox/back.jpg"
     };
 
+    
+
+
 	unsigned int skyBoxTexture = loadCubemap(faces);
     skyBoxShader.UseProgram();
     skyBoxShader.SetInt("skybox", 0);
 
     shader.UseProgram();
-    shader.SetInt("skybox", 0);
+    shader.SetInt("skybox", 1);
+
+    unsigned int metalTexture = load_image("res/metal.jpg");
+    planeShader.UseProgram();
+    planeShader.SetInt("planeTexture", 2);
 
 
 	// ImGui 初始化
@@ -197,12 +215,35 @@ int main()
         lastTime = currentTime;
         camera.KeyboardMoveCamera(window, deltaTime);
 
-
-        // model shader
-        shader.UseProgram();
-        shader.SetMaterial("material", material);
+        glm::mat4 model(1.0f);
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
+
+        // model shader
+        modelShader.UseProgram();
+        model = glm::translate(model, glm::vec3(-1.5f, -0.5f, 0.0f));
+        modelShader.SetMat4("model", model);
+        modelShader.SetMat4("view", view);
+        modelShader.SetMat4("projection", projection);
+        modelShader.SetVec3f("cameraPos", camera.GetPos());
+        modelShader.SetFloat("modelSize", size);
+        ourModel.Draw(modelShader);
+
+        model = glm::mat4(1.0f);
+        // plane shader
+        planeShader.UseProgram();
+        glBindVertexArray(planeVAO);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, metalTexture);
+        planeShader.SetMat4("model", model);
+        planeShader.SetMat4("view", view);
+        planeShader.SetMat4("projection", projection);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+
+        // cube shader
+        shader.UseProgram();
+        shader.SetMaterial("material", material);
         shader.SetMat4("view", view);
         shader.SetMat4("projection", projection);
         shader.SetVec3f("viewPos", camera.GetPos());
@@ -210,11 +251,15 @@ int main()
         // cubes
         glBindVertexArray(VAO);
         // model shader texture setting
-        glActiveTexture(GL_TEXTURE0);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
-
-
-		glm::mat4 model(1.0f);
+        shader.SetMat4("model", model);
+        glBindVertexArray(VAO);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
+        glBindVertexArray(0);
+    
+        model = glm::mat4(1.0f);       
+        model = glm::translate(model, glm::vec3(1.5f, 0.0f, -0.5f));
         shader.SetMat4("model", model);
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, 36);
@@ -222,10 +267,10 @@ int main()
 
 
 
-
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
         skyBoxShader.UseProgram();
+
         view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
         skyBoxShader.SetMat4("view", view);
         skyBoxShader.SetMat4("projection", projection);
@@ -234,11 +279,13 @@ int main()
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
         glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
+        glBindVertexArray(0); 
         glDepthFunc(GL_LESS); // set depth function back to default
 
 
+        
 
+        shader.UseProgram();
         // model shader light setting
         shader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
 		shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
@@ -250,6 +297,7 @@ int main()
         // setting spotlight
         shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0), spotLightSwitch);
         (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
+
 
 
         // light shader
@@ -270,7 +318,6 @@ int main()
             glBindVertexArray(lightVAO);
             glDrawArrays(GL_TRIANGLES, 0, 36);
         }
-
 
         // ImGui Optional
         ImGui::Begin("Material");
