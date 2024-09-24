@@ -67,7 +67,7 @@ glm::vec3 cubePositions[] = {
 };
 
 glm::vec3 pointLightPositions[] = {
-        glm::vec3(0.7f,  0.2f,  2.0f),
+        glm::vec3(0.7f,  -0.3f,  2.0f),
         glm::vec3(2.3f, -3.3f, -4.0f),
         glm::vec3(-4.0f,  2.0f, -12.0f),
         glm::vec3(0.0f,  0.0f, -3.0f)
@@ -119,14 +119,14 @@ float cubeVertices[] = {
 };
 
 float planeVertices[] = {
-    // positions          // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
-     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-    -5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
-    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+    // positions            // normals         // texcoords
+     25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+    -25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,   0.0f,  0.0f,
+    -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
 
-     5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
-    -5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
-     5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+     25.0f, -0.5f,  25.0f,  0.0f, 1.0f, 0.0f,  25.0f,  0.0f,
+    -25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,   0.0f, 25.0f,
+     25.0f, -0.5f, -25.0f,  0.0f, 1.0f, 0.0f,  25.0f, 25.0f
 };
 
 std::vector<glm::vec3> vegetation
@@ -202,15 +202,4 @@ float skyboxVertices[] = {
      1.0f, -1.0f, -1.0f,
     -1.0f, -1.0f,  1.0f,
      1.0f, -1.0f,  1.0f
-};
-
-float quadVertices[] = {
-    // Î»ÖÃ          // ÑÕÉ«
-    -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-     0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-    -0.05f, -0.05f,  0.0f, 0.0f, 1.0f,
-
-    -0.05f,  0.05f,  1.0f, 0.0f, 0.0f,
-     0.05f, -0.05f,  0.0f, 1.0f, 0.0f,
-     0.05f,  0.05f,  0.0f, 1.0f, 1.0f
 };

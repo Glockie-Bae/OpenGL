@@ -25,19 +25,25 @@ vec3 GetNormal()
     return normalize(cross(a, b));
 }
 
+bool IsExplode = true;
+
 void main() {    
     // 先得到一个片段的中心法向量
     vec3 normal = GetNormal();
 
-    // 一个三角形片段每个点顺着法向量方向移动
-    gl_Position = explode(gl_in[0].gl_Position, normal);
-    TexCoords = gs_in[0].texCoords;
-    EmitVertex();
-    gl_Position = explode(gl_in[1].gl_Position, normal);
-    TexCoords = gs_in[1].texCoords;
-    EmitVertex();
-    gl_Position = explode(gl_in[2].gl_Position, normal);
-    TexCoords = gs_in[2].texCoords;
+
+    if(IsExplode){
+        // 一个三角形片段每个点顺着法向量方向移动
+        gl_Position = explode(gl_in[0].gl_Position, normal);
+        TexCoords = gs_in[0].texCoords;
+        EmitVertex();
+        gl_Position = explode(gl_in[1].gl_Position, normal);
+        TexCoords = gs_in[1].texCoords;
+        EmitVertex();
+        gl_Position = explode(gl_in[2].gl_Position, normal);
+        TexCoords = gs_in[2].texCoords;
+    }
+    
     EmitVertex();
     EndPrimitive();
 

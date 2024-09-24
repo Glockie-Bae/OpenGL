@@ -186,16 +186,12 @@
     <None Include="Shaders\shaderSource\DepthTestFS.shader" />
     <None Include="Shaders\shaderSource\DepthTestVS.shader" />
     <None Include="Shaders\shaderSource\Fragment.Shader" />
-    <None Include="Shaders\shaderSource\InstanceFS.shader" />
-    <None Include="Shaders\shaderSource\InstanceVS.shader" />
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
     <None Include="Shaders\shaderSource\ModelGeometryShader.shader" />
     <None Include="Shaders\shaderSource\ModelVertexShader.shader" />
     <None Include="Shaders\shaderSource\SkyBoxFragment.shader" />
     <None Include="Shaders\shaderSource\SkyBoxVertex.shader" />
-    <None Include="Shaders\shaderSource\testFragmentShader.shader" />
-    <None Include="Shaders\shaderSource\testVertexShader.shader" />
     <None Include="Shaders\shaderSource\Vertex.shader" />
   </ItemGroup>
   <ItemGroup>

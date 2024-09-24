@@ -26,6 +26,9 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
+void RenderQuad();
+void renderCube();
+void renderScene(const Shader& shader, unsigned int& planeVAO);
 unsigned int load_image(const char* imageFile);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
@@ -50,6 +53,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
 
     // glfw window creation
     // --------------------
@@ -77,33 +81,16 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
+    glEnable(GL_MULTISAMPLE);
     
     Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.shader");
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
     Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
     Shader planeShader("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
     Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader", "Shaders/shaderSource/ModelGeometryShader.shader");
-    Shader instanceShader("Shaders/shaderSource/InstanceVS.shader", "Shaders/shaderSource/InstanceFS.shader");
+    
 
 	Model ourModel("res/nanosuit/nanosuit.obj");
-    Model planet("res/planet/planet.obj");
-    Model rock("res/rock/rock.obj");
-
-
-	// 顶点缓冲对象(Vertex Buffer Objects, VBO) 管理顶点数组 (顶点数组对象(Vertex Array Objects, VAO))
-    unsigned int VBO, VAO;
-    glGenVertexArrays(1, &VAO);
-    glGenBuffers(1, &VBO);
-    glBindBuffer(GL_ARRAY_BUFFER, VBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glBindVertexArray(VAO);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-
 
     // 光源
     unsigned int lightVAO, lightVBO;
@@ -135,9 +122,13 @@ int main()
     glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
     glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(2);
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+
+
 
 
 
@@ -157,10 +148,18 @@ int main()
 
     shader.UseProgram();
     shader.SetInt("skybox", 1);
+   
+    shader.SetInt("diffuseMap", 3);
+    shader.SetInt("normalMap", 4);
 
-    unsigned int metalTexture = load_image("res/metal.jpg");
+    unsigned int woodTexture = load_image("res/wood.png");
+    unsigned int diffuseMap = load_image("res/brickwall.jpg");
+    unsigned int normalMap = load_image("res/brickwall_normal.jpg");
+ 
     planeShader.UseProgram();
     planeShader.SetInt("planeTexture", 2);
+
+    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
 
 
 	// ImGui 初始化
@@ -178,78 +177,19 @@ int main()
 
 
     LightManager lightManager;
-    lightManager.AddDirLight(new DirLight(glm::vec3(0.0f), glm::vec3(0.5f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, -2.0f)));
+    lightManager.AddDirLight(new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, -2.0f)));
 
     lightManager.AddSpotLight(new SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
     for (int i = 0; i < 1; i++) {
         lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
+        lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-2.0f, 4.0f, -1.0f), 1.0f, 0.09f, 0.032f));
     }
 
     bool spotLightSwitch = true;
     bool isStencilTest = false;
     bool glass = true;
-
-    // generate a large list of semi-random model transformation matrices
-    // ------------------------------------------------------------------
-    unsigned int amount = 50000;
-    glm::mat4* modelMatrices;
-    modelMatrices = new glm::mat4[amount];
-    srand(static_cast<unsigned int>(glfwGetTime())); // initialize random seed
-    float radius = 150.0;
-    float offset = 25.0f;
-    for (unsigned int i = 0; i < amount; i++)
-    {
-        glm::mat4 model = glm::mat4(1.0f);
-        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
-        float angle = (float)i / (float)amount * 360.0f;
-        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float x = sin(angle) * radius + displacement;
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float y = displacement * 0.4f; // keep height of asteroid field smaller compared to width of x and z
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float z = cos(angle) * radius + displacement;
-        model = glm::translate(model, glm::vec3(x, y, z));
-
-        // 2. scale: Scale between 0.05 and 0.25f
-        float scale = static_cast<float>((rand() % 20) / 100.0 + 0.05);
-        model = glm::scale(model, glm::vec3(scale));
-
-        // 3. rotation: add random rotation around a (semi)randomly picked rotation axis vector
-        float rotAngle = static_cast<float>((rand() % 360));
-        model = glm::rotate(model, rotAngle, glm::vec3(0.4f, 0.6f, 0.8f));
-
-        // 4. now add to list of matrices
-        modelMatrices[i] = model;
-    }
-
-    unsigned int rockVBO;
-    glGenBuffers(1, &rockVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, rockVBO);
-    glBufferData(GL_ARRAY_BUFFER, amount * sizeof(glm::mat4), &modelMatrices[0], GL_STATIC_DRAW);
-
-    for (unsigned int i = 0; i < rock.meshes.size(); i++)
-    {
-        unsigned int VAO = rock.meshes[i].m_VAO;
-        glBindVertexArray(VAO);
-        // 顶点属性
-        GLsizei vec4Size = sizeof(glm::vec4);
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)0);
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(vec4Size));
-        glEnableVertexAttribArray(5);
-        glVertexAttribPointer(5, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(2 * vec4Size));
-        glEnableVertexAttribArray(6);
-        glVertexAttribPointer(6, 4, GL_FLOAT, GL_FALSE, 4 * vec4Size, (void*)(3 * vec4Size));
-
-        glVertexAttribDivisor(3, 1);
-        glVertexAttribDivisor(4, 1);
-        glVertexAttribDivisor(5, 1);
-        glVertexAttribDivisor(6, 1);
-
-        glBindVertexArray(0);
-    }
-
+    bool Isblinn = true;
+    bool IsNormalTexture = true;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -279,30 +219,6 @@ int main()
         glm::mat4 view = camera.GetViewMatrix();
         glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
 
-        instanceShader.UseProgram();
-
-        instanceShader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
-        instanceShader.SetVec3f("cameraPos", camera.GetPos());
-		instanceShader.SetMat4("view", view);
-		instanceShader.SetMat4("projection", projection);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(0.0f, -3.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
-        instanceShader.SetBool("IsPlanet", 1);
-        instanceShader.SetMat4("model", model);
-        planet.Draw(instanceShader);
-
-
-        instanceShader.UseProgram();
-        // draw meteorites
-        instanceShader.SetBool("IsPlanet", 0);
-        for (unsigned int i = 0; i < rock.meshes.size(); i++)
-        {
-            glBindVertexArray(rock.meshes[i].m_VAO);
-            glDrawElementsInstanced(
-                GL_TRIANGLES, rock.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount
-            );
-        }
 
         // model shader
 		modelShader.UseProgram();
@@ -315,44 +231,48 @@ int main()
         size = 0.1f;
         modelShader.SetFloat("modelSize", size);
         modelShader.SetFloat("time", static_cast<float>(glfwGetTime()));
-        //ourModel.Draw(modelShader);
+        ourModel.Draw(modelShader);
 
         model = glm::mat4(1.0f);
         // plane shader
         planeShader.UseProgram();
         glBindVertexArray(planeVAO);
         glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, metalTexture);
+        glBindTexture(GL_TEXTURE_2D, woodTexture);
         planeShader.SetMat4("model", model);
         planeShader.SetMat4("view", view);
         planeShader.SetMat4("projection", projection);
+
+        planeShader.SetVec3f("viewPos", camera.GetPos());
+        planeShader.SetPointLight("pointLight", (*lightManager.GetPointLight(0)));
+        planeShader.SetBool("Isblinn", Isblinn);
+
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
 
         // cube shader
         shader.UseProgram();
-        shader.SetMaterial("material", material);
         shader.SetMat4("view", view);
         shader.SetMat4("projection", projection);
         shader.SetVec3f("viewPos", camera.GetPos());
 
-        // cubes
-        glBindVertexArray(VAO);
+        
         // model shader texture setting
         glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, diffuseMap);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, normalMap);
         shader.SetMat4("model", model);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
+        shader.SetVec3f("lightPos", (*lightManager.GetPointLight(0)).position);
+        RenderQuad();
     
         model = glm::mat4(1.0f);       
         model = glm::translate(model, glm::vec3(1.5f, 0.0f, -0.5f));
+        model = glm::rotate(model, (GLfloat)sin(glfwGetTime()), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
         shader.SetMat4("model", model);
-        glBindVertexArray(VAO);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
-
+        RenderQuad();
 
 
         // draw skybox as last
@@ -366,27 +286,12 @@ int main()
         glBindVertexArray(skyBoxVAO);
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
-        //glDrawArrays(GL_TRIANGLES, 0, 36);
+        glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0); 
         glDepthFunc(GL_LESS); // set depth function back to default
 
 
         
-
-        shader.UseProgram();
-        // model shader light setting
-        shader.SetDirLight("dirLight", *lightManager.GetDirLight(0));
-		shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
-        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
-            char* name = new char[10];
-            sprintf(name, "pointLight[%d]", i);
-            shader.SetPointLight(name, *lightManager.GetPointLight(i));
-        }
-        // setting spotlight
-        shader.SetSpotLight("spotLight", *lightManager.GetSpotLight(0), spotLightSwitch);
-        (*lightManager.GetSpotLight(0)).Update(camera.GetPos(), camera.GetFront());
-
-
 
         // light shader
         // setting light cube
@@ -429,11 +334,18 @@ int main()
             sprintf(name, "pointLight[%d]", i);
             ImGui::SliderFloat3(name, &(*lightManager.GetPointLight(i)).position[0], -15.0f, 10.0f);
         }
+        ImGui::SliderFloat3("DirLight Position", &(*lightManager.GetDirLight(0)).direction[0], -10.0f, 10.0f);
         ImGui::End();
 
         ImGui::Begin("Test");
         if (ImGui::Button("isStencilTest")) {
             isStencilTest = !isStencilTest;
+        }
+        if (ImGui::Button("IsBlinn")) {
+            Isblinn = !Isblinn;
+        }
+        if (ImGui::Button("IsNormalTexture")) {
+            IsNormalTexture = !IsNormalTexture;
         }
 
         ImGui::End();
@@ -455,12 +367,7 @@ int main()
     ImGui::DestroyContext();
 
     // optional: de-allocate all resources once they've outlived their purpose:
-    // ------------------------------------------------------------------------
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteVertexArrays(1, &lightVAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteBuffers(1, &lightVBO);
-
+    // -----------------------------------------------------------------------
     
     shader.DeleteProgram();
     // glfw: terminate, clearing all previously allocated GLFW resources.
@@ -468,6 +375,207 @@ int main()
     glfwTerminate();
     return 0;
 }
+
+
+
+// renders the 3D scene
+// --------------------
+void renderScene(const Shader& shader, unsigned int &planeVAO)
+{
+    // floor
+    glm::mat4 model = glm::mat4(1.0f);
+    shader.SetMat4("model", model);
+    glBindVertexArray(planeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    // cubes
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
+    model = glm::scale(model, glm::vec3(0.5f));
+    shader.SetMat4("model", model);
+    renderCube();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
+    model = glm::scale(model, glm::vec3(0.5f));
+    shader.SetMat4("model", model);
+    renderCube();
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
+    model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
+    model = glm::scale(model, glm::vec3(0.25));
+    shader.SetMat4("model", model);
+    renderCube();
+}
+
+
+// renderCube() renders a 1x1 3D cube in NDC.
+// -------------------------------------------------
+unsigned int cubeVAO = 0;
+unsigned int cubeVBO = 0;
+void renderCube()
+{
+    // initialize (if necessary)
+    if (cubeVAO == 0)
+    {
+        float vertices[] = {
+            // back face
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
+             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
+            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
+            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
+            // front face
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+             1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
+            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
+            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
+            // left face
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
+            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
+            // right face
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
+             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
+             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
+             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
+             // bottom face
+             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+              1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
+              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
+             -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
+             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
+             // top face
+             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+              1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+              1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
+              1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
+             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
+             -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
+        };
+        glGenVertexArrays(1, &cubeVAO);
+        glGenBuffers(1, &cubeVBO);
+        // fill buffer
+        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // link vertex attributes
+        glBindVertexArray(cubeVAO);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+    }
+    // render Cube
+    glBindVertexArray(cubeVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 36);
+    glBindVertexArray(0);
+}
+
+
+// RenderQuad() Renders a 1x1 quad in NDC
+GLuint quadVAO = 0;
+GLuint quadVBO;
+void RenderQuad()
+{
+    if (quadVAO == 0)
+    {
+        // positions
+        glm::vec3 pos1(-1.0, 1.0, 0.0);
+        glm::vec3 pos2(-1.0, -1.0, 0.0);
+        glm::vec3 pos3(1.0, -1.0, 0.0);
+        glm::vec3 pos4(1.0, 1.0, 0.0);
+        // texture coordinates
+        glm::vec2 uv1(0.0, 1.0);
+        glm::vec2 uv2(0.0, 0.0);
+        glm::vec2 uv3(1.0, 0.0);
+        glm::vec2 uv4(1.0, 1.0);
+        // normal vector
+        glm::vec3 nm(0.0, 0.0, 1.0);
+
+        // calculate tangent/bitangent vectors of both triangles
+        glm::vec3 tangent1(1.0f), bitangent1(1.0f);
+        glm::vec3 tangent2(1.0f), bitangent2(1.0f);
+        // - triangle 1
+        glm::vec3 edge1 = pos2 - pos1;
+        glm::vec3 edge2 = pos3 - pos1;
+        glm::vec2 deltaUV1 = uv2 - uv1;
+        glm::vec2 deltaUV2 = uv3 - uv1;
+
+        GLfloat f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+        tangent1 = glm::normalize(tangent1);
+
+        bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        bitangent1 = glm::normalize(bitangent1);
+
+        // - triangle 2
+        edge1 = pos3 - pos1;
+        edge2 = pos4 - pos1;
+        deltaUV1 = uv3 - uv1;
+        deltaUV2 = uv4 - uv1;
+
+        f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
+
+        tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
+        tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
+        tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+        tangent2 = glm::normalize(tangent2);
+
+
+        bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
+        bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
+        bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
+        bitangent2 = glm::normalize(bitangent2);
+
+
+        GLfloat quadVertices[] = {
+            // Positions            // normal         // TexCoords  // Tangent                          // Bitangent
+            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+            pos2.x, pos2.y, pos2.z, nm.x, nm.y, nm.z, uv2.x, uv2.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
+
+            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
+            pos4.x, pos4.y, pos4.z, nm.x, nm.y, nm.z, uv4.x, uv4.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z
+        };
+        // Setup plane VAO
+        glGenVertexArrays(1, &quadVAO);
+        glGenBuffers(1, &quadVBO);
+        glBindVertexArray(quadVAO);
+        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)0);
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(3);
+        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(8 * sizeof(GLfloat)));
+        glEnableVertexAttribArray(4);
+        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(11 * sizeof(GLfloat)));
+    }
+    glBindVertexArray(quadVAO);
+    glDrawArrays(GL_TRIANGLES, 0, 6);
+    glBindVertexArray(0);
+}
+
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
 // ---------------------------------------------------------------------------------------------------------
