@@ -160,6 +160,7 @@
     <ClCompile Include="Light\LightManager.cpp" />
     <ClCompile Include="Mesh\Mesh.cpp" />
     <ClCompile Include="Model\Model.cpp" />
+    <ClCompile Include="Render\Renderer.cpp" />
     <ClCompile Include="Shaders\Shader.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -178,6 +179,7 @@
     <ClInclude Include="Light\LightManager.h" />
     <ClInclude Include="Mesh\Mesh.h" />
     <ClInclude Include="Model\Model.h" />
+    <ClInclude Include="Render\Renderer.h" />
     <ClInclude Include="Shaders\Shader.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />

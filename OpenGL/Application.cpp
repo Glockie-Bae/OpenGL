@@ -11,6 +11,7 @@
 #include"Model/Model.h"
 
 #include"Mesh/Mesh.h"
+#include"Render/Renderer.h"
 
 #include <iostream>
 #include<sstream>
@@ -26,7 +27,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-void RenderQuad();
 void renderCube();
 void renderScene(const Shader& shader, unsigned int& planeVAO);
 unsigned int load_image(const char* imageFile);
@@ -92,43 +92,12 @@ int main()
 
 	Model ourModel("res/nanosuit/nanosuit.obj");
 
-    // 光源
-    unsigned int lightVAO, lightVBO;
-	glGenVertexArrays(1, &lightVAO);
-    glBindVertexArray(lightVAO);
-    glGenBuffers(1, &lightVBO);
-    glBindBuffer(GL_ARRAY_BUFFER, lightVBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-	// VBO 存放箱子的位置数据
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(0);
-
-
-    // sky box VAO VBO;
-    unsigned int skyBoxVAO, skyBoxVBO;
-    glGenVertexArrays(1, &skyBoxVAO);
-    glGenBuffers(1, &skyBoxVBO);
-    glBindVertexArray(skyBoxVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, skyBoxVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(skyboxVertices), skyboxVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-
-
-    unsigned int planeVAO, planeVBO;
-    glGenVertexArrays(1, &planeVAO);
-	glGenBuffers(1, &planeVBO);
-    glBindVertexArray(planeVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(planeVertices), planeVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-    glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-
-
+	// set up vertex data and configure vertex attributes
+    Renderer renderer;
+    renderer.CreateBufferObject("quad");
+    renderer.CreateBufferObject("plane");
+    renderer.CreateBufferObject("skybox");
+    renderer.CreateBufferObject("pointlight");
 
 
 
@@ -151,6 +120,7 @@ int main()
    
     shader.SetInt("diffuseMap", 3);
     shader.SetInt("normalMap", 4);
+
 
     unsigned int woodTexture = load_image("res/wood.png");
     unsigned int diffuseMap = load_image("res/brickwall.jpg");
@@ -235,8 +205,8 @@ int main()
 
         model = glm::mat4(1.0f);
         // plane shader
+
         planeShader.UseProgram();
-        glBindVertexArray(planeVAO);
         glActiveTexture(GL_TEXTURE2);
         glBindTexture(GL_TEXTURE_2D, woodTexture);
         planeShader.SetMat4("model", model);
@@ -247,8 +217,7 @@ int main()
         planeShader.SetPointLight("pointLight", (*lightManager.GetPointLight(0)));
         planeShader.SetBool("Isblinn", Isblinn);
 
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0);
+        renderer.Render("plane", planeVertices, sizeof(planeVertices), 3, true);
 
         // cube shader
         shader.UseProgram();
@@ -266,13 +235,13 @@ int main()
         glBindTexture(GL_TEXTURE_2D, normalMap);
         shader.SetMat4("model", model);
         shader.SetVec3f("lightPos", (*lightManager.GetPointLight(0)).position);
-        RenderQuad();
+        renderer.RenderQuad("quad");
     
         model = glm::mat4(1.0f);       
         model = glm::translate(model, glm::vec3(1.5f, 0.0f, -0.5f));
         model = glm::rotate(model, (GLfloat)sin(glfwGetTime()), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
         shader.SetMat4("model", model);
-        RenderQuad();
+        renderer.RenderQuad("quad");
 
 
         // draw skybox as last
@@ -283,13 +252,12 @@ int main()
         skyBoxShader.SetMat4("view", view);
         skyBoxShader.SetMat4("projection", projection);
         // skybox cube
-        glBindVertexArray(skyBoxVAO);
+       
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
-        glDrawArrays(GL_TRIANGLES, 0, 36);
-        glBindVertexArray(0); 
+        renderer.Render("skybox", skyboxVertices, sizeof(skyboxVertices), 1, false);
+        
         glDepthFunc(GL_LESS); // set depth function back to default
-
 
         
 
@@ -308,33 +276,17 @@ int main()
             lightModel = glm::translate(lightModel, (*lightManager.GetPointLight(i)).position);
             lightModel = glm::scale(lightModel, glm::vec3(0.2f)); // a smaller cube
             lightShader.SetMat4("model", lightModel);
-            glBindVertexArray(lightVAO);
-            glDrawArrays(GL_TRIANGLES, 0, 36);
+            renderer.Render("pointlight", vertices, sizeof(vertices), 3, true);
         }
 
         // ImGui Optional
-        ImGui::Begin("Material");
-        ImGui::SliderFloat3("Material Ambient", &material.ambient[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Material Diffuse", &material.diffuse[0], 0.0f, 1.0f);
-        ImGui::SliderFloat3("Material Specular", &material.specular[0], 0.0f, 1.0f);
-        ImGui::End();
-
         ImGui::Begin("Light");
-        if (ImGui::Button("Add Point Light")) {
-            lightManager.AddPointLight(new PointLight());
-            shader.UseProgram();
-            shader.SetInt("pointLightNumber", lightManager.GetPointLightCount());
-        }
-        if (ImGui::Button("SpotLight Switch")) {
-            spotLightSwitch = !spotLightSwitch;
-        }
         ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
         for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
             char* name = new char[10];
             sprintf(name, "pointLight[%d]", i);
             ImGui::SliderFloat3(name, &(*lightManager.GetPointLight(i)).position[0], -15.0f, 10.0f);
         }
-        ImGui::SliderFloat3("DirLight Position", &(*lightManager.GetDirLight(0)).direction[0], -10.0f, 10.0f);
         ImGui::End();
 
         ImGui::Begin("Test");
@@ -347,7 +299,6 @@ int main()
         if (ImGui::Button("IsNormalTexture")) {
             IsNormalTexture = !IsNormalTexture;
         }
-
         ImGui::End();
         ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -486,95 +437,7 @@ void renderCube()
 // RenderQuad() Renders a 1x1 quad in NDC
 GLuint quadVAO = 0;
 GLuint quadVBO;
-void RenderQuad()
-{
-    if (quadVAO == 0)
-    {
-        // positions
-        glm::vec3 pos1(-1.0, 1.0, 0.0);
-        glm::vec3 pos2(-1.0, -1.0, 0.0);
-        glm::vec3 pos3(1.0, -1.0, 0.0);
-        glm::vec3 pos4(1.0, 1.0, 0.0);
-        // texture coordinates
-        glm::vec2 uv1(0.0, 1.0);
-        glm::vec2 uv2(0.0, 0.0);
-        glm::vec2 uv3(1.0, 0.0);
-        glm::vec2 uv4(1.0, 1.0);
-        // normal vector
-        glm::vec3 nm(0.0, 0.0, 1.0);
 
-        // calculate tangent/bitangent vectors of both triangles
-        glm::vec3 tangent1(1.0f), bitangent1(1.0f);
-        glm::vec3 tangent2(1.0f), bitangent2(1.0f);
-        // - triangle 1
-        glm::vec3 edge1 = pos2 - pos1;
-        glm::vec3 edge2 = pos3 - pos1;
-        glm::vec2 deltaUV1 = uv2 - uv1;
-        glm::vec2 deltaUV2 = uv3 - uv1;
-
-        GLfloat f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-        tangent1.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-        tangent1.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-        tangent1.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-        tangent1 = glm::normalize(tangent1);
-
-        bitangent1.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-        bitangent1.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-        bitangent1.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-        bitangent1 = glm::normalize(bitangent1);
-
-        // - triangle 2
-        edge1 = pos3 - pos1;
-        edge2 = pos4 - pos1;
-        deltaUV1 = uv3 - uv1;
-        deltaUV2 = uv4 - uv1;
-
-        f = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-
-        tangent2.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
-        tangent2.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
-        tangent2.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
-        tangent2 = glm::normalize(tangent2);
-
-
-        bitangent2.x = f * (-deltaUV2.x * edge1.x + deltaUV1.x * edge2.x);
-        bitangent2.y = f * (-deltaUV2.x * edge1.y + deltaUV1.x * edge2.y);
-        bitangent2.z = f * (-deltaUV2.x * edge1.z + deltaUV1.x * edge2.z);
-        bitangent2 = glm::normalize(bitangent2);
-
-
-        GLfloat quadVertices[] = {
-            // Positions            // normal         // TexCoords  // Tangent                          // Bitangent
-            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
-            pos2.x, pos2.y, pos2.z, nm.x, nm.y, nm.z, uv2.x, uv2.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
-            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent1.x, tangent1.y, tangent1.z, bitangent1.x, bitangent1.y, bitangent1.z,
-
-            pos1.x, pos1.y, pos1.z, nm.x, nm.y, nm.z, uv1.x, uv1.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
-            pos3.x, pos3.y, pos3.z, nm.x, nm.y, nm.z, uv3.x, uv3.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z,
-            pos4.x, pos4.y, pos4.z, nm.x, nm.y, nm.z, uv4.x, uv4.y, tangent2.x, tangent2.y, tangent2.z, bitangent2.x, bitangent2.y, bitangent2.z
-        };
-        // Setup plane VAO
-        glGenVertexArrays(1, &quadVAO);
-        glGenBuffers(1, &quadVBO);
-        glBindVertexArray(quadVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(3 * sizeof(GLfloat)));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(6 * sizeof(GLfloat)));
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(8 * sizeof(GLfloat)));
-        glEnableVertexAttribArray(4);
-        glVertexAttribPointer(4, 3, GL_FLOAT, GL_FALSE, 14 * sizeof(GLfloat), (GLvoid*)(11 * sizeof(GLfloat)));
-    }
-    glBindVertexArray(quadVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    glBindVertexArray(0);
-}
 
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
