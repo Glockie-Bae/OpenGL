@@ -13,18 +13,24 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include"Light/Light.h"
-
+#include"TextureMap/TextureMap.h"
 
 struct Material{
 
     // 物体吸收的光线
     // (0.0f, 0.0f, 1.0f) 表示只吸收蓝色光线
-	glm::vec3 ambient;
-	glm::vec3 diffuse;
-    glm::vec3 specular;
-	float shininess;
+    glm::vec3 albedo;           // 颜色
+    float metallic;             // 金属度
+	float roughness;            // 粗糙度
+    float ao;                   // 环境光遮蔽
 
-    Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess);
+
+    TextureMap textureMap;
+
+    Material(glm::vec3 albedo, float metallic, float roughness, float ao);
+    Material(glm::vec3 albedo, float metallic, float roughness, float ao, const std::string& filePath);
+
+    void LoadTextureMap(const std::string& filePath);
 };
 
 

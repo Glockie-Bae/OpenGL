@@ -72,6 +72,9 @@
     <ClCompile Include="Render\Renderer.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="TextureMap\TextureMap.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -131,6 +134,12 @@
     <ClInclude Include="Render\Renderer.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="TextureMap\TextureMap.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureMap\标头.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\shaderSource\Vertex.shader" />
@@ -143,6 +152,10 @@
     <None Include="Shaders\shaderSource\SkyBoxVertex.shader" />
     <None Include="Shaders\shaderSource\SkyBoxFragment.shader" />
     <None Include="Shaders\shaderSource\ModelGeometryShader.shader" />
+    <None Include="Shaders\shaderSource\hdrVS.shader" />
+    <None Include="Shaders\shaderSource\hdrFS.shader" />
+    <None Include="Shaders\shaderSource\PBRVS.shader" />
+    <None Include="Shaders\shaderSource\PBRFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">

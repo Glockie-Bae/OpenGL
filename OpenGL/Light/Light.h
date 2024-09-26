@@ -23,7 +23,9 @@ struct PointLight : public Light {
 
     PointLight();
 	PointLight(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, glm::vec3 position, float constant, float linear, float quadratic);
+    PointLight(glm::vec3 position, glm::vec3 color);
     glm::vec3 position;
+    glm::vec3 color;
 
     float constant;
     float linear;

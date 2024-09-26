@@ -130,10 +130,10 @@ void Shader::SetVec2f(const std::string& name, glm::vec2 vec) const
 
 void Shader::SetMaterial(const std::string& name, Material mateial) const
 {
-	SetVec3f(name + ".ambient", mateial.ambient);
-	SetVec3f(name + ".diffuse", mateial.diffuse);
-	SetVec3f(name + ".specular", mateial.specular);
-	SetFloat(name + ".shininess", mateial.shininess);
+	SetVec3f(name + ".albedo", mateial.albedo);
+	SetFloat(name + ".metallic", mateial.metallic);
+	SetFloat(name + ".roughness", mateial.roughness);
+	SetFloat(name + ".ao", mateial.ao);
 }
 
 void Shader::SetLight(const std::string& name, Light light) const
@@ -256,11 +256,28 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
 
 }
 
-Material::Material(glm::vec3 ambient, glm::vec3 diffuse, glm::vec3 specular, float shininess)
+Material::Material(glm::vec3 albedo, float metallic, float roughness, float ao)
 {
-	this->ambient = ambient;
-	this->diffuse = diffuse;
-	this->specular = specular;
-	this->shininess = shininess;
+	this->albedo = albedo;
+	this->metallic = metallic;
+	this->roughness = roughness;
+	this->ao = ao;
+
+	textureMap = TextureMap();
+}
+
+Material::Material(glm::vec3 albedo, float metallic, float roughness, float ao, const std::string& filePath)
+{
+	this->albedo = albedo;
+	this->metallic = metallic;
+	this->roughness = roughness;
+	this->ao = ao;
+
+	textureMap = TextureMap(filePath);
+}
+
+void Material::LoadTextureMap(const std::string& filePath)
+{
+	textureMap.LoadTextureMap(filePath);
 }
 

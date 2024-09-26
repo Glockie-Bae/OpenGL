@@ -27,8 +27,6 @@ void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xposIn, double yposIn);
 void sroll_callback(GLFWwindow* window, double xoffset, double yoffset);
 void processInput(GLFWwindow* window);
-void renderCube();
-void renderScene(const Shader& shader, unsigned int& planeVAO);
 unsigned int load_image(const char* imageFile);
 unsigned int loadCubemap(std::vector<std::string> faces);
 
@@ -44,6 +42,8 @@ Camera camera;
 bool right_mouse_pressed = false;
 
 glm::vec3 lightPos(1.2f, 0.58f, 2.0f);
+
+unsigned int indexCount;
 
 int main()
 {
@@ -88,6 +88,8 @@ int main()
     Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
     Shader planeShader("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
     Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader", "Shaders/shaderSource/ModelGeometryShader.shader");
+    Shader hdrShader("Shaders/shaderSource/hdrVS.shader", "Shaders/shaderSource/hdrFS.shader");
+    Shader PBRShader("Shaders/shaderSource/PBRVS.shader", "Shaders/shaderSource/PBRFS.shader");
     
 
 	Model ourModel("res/nanosuit/nanosuit.obj");
@@ -98,6 +100,7 @@ int main()
     renderer.CreateBufferObject("plane");
     renderer.CreateBufferObject("skybox");
     renderer.CreateBufferObject("pointlight");
+    renderer.CreateBufferObject("sphere");
 
 
 
@@ -129,8 +132,6 @@ int main()
     planeShader.UseProgram();
     planeShader.SetInt("planeTexture", 2);
 
-    const unsigned int SHADOW_WIDTH = 1024, SHADOW_HEIGHT = 1024;
-
 
 	// ImGui 初始化
     IMGUI_CHECKVERSION();
@@ -143,7 +144,16 @@ int main()
 
     float size = 0.1f;
     //glm::vec3(1.2f, 0.58f, 2.0f)
-    Material material(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.5f, 0.5f, 0.5f), glm::vec3(0.5f, 0.5f, 0.5f), 128.0f);
+    Material material(glm::vec3(0.5f, 0.0f, 0.0f), 0.5f, 0.5f, 1.0f);
+    material.LoadTextureMap(std::string("res/rust"));
+
+    PBRShader.UseProgram();
+    PBRShader.SetInt("albedoMap", 0);
+    PBRShader.SetInt("normalMap", 1);
+    PBRShader.SetInt("metallicMap", 2);
+    PBRShader.SetInt("roughnessMap", 3);
+    PBRShader.SetInt("aoMap", 4);
+
 
 
     LightManager lightManager;
@@ -155,11 +165,61 @@ int main()
         lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-2.0f, 4.0f, -1.0f), 1.0f, 0.09f, 0.032f));
     }
 
+
+
     bool spotLightSwitch = true;
     bool isStencilTest = false;
     bool glass = true;
     bool Isblinn = true;
     bool IsNormalTexture = true;
+    bool IsHDR = true;
+    bool IsTexture = true;
+    float exposure = 1.0f;
+
+
+    // screen quad VAO
+    unsigned int quadVAO, quadVBO;
+    glGenVertexArrays(1, &quadVAO);
+    glGenBuffers(1, &quadVBO);
+    glBindVertexArray(quadVAO);
+    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+
+
+	// 生成FBO
+	unsigned int FBO;
+	glGenFramebuffers(1, &FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+
+    // 纹理绑定
+	unsigned int textureColorBuffer;
+    glGenTextures(1, &textureColorBuffer);
+	glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+
+    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
+    unsigned int rbo;
+    glGenRenderbuffers(1, &rbo);
+    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
+    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+
+    float light = 1.0f;
+    int nrRows = 7;
+    int nrColumns = 7;
+    float spacing = 2.5;
     // render loop
     // -----------
     while (!glfwWindowShouldClose(window))
@@ -174,7 +234,8 @@ int main()
 
         // render
         // ------
-
+        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         // 清楚深度缓冲
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -201,7 +262,7 @@ int main()
         size = 0.1f;
         modelShader.SetFloat("modelSize", size);
         modelShader.SetFloat("time", static_cast<float>(glfwGetTime()));
-        ourModel.Draw(modelShader);
+        
 
         model = glm::mat4(1.0f);
         // plane shader
@@ -216,8 +277,7 @@ int main()
         planeShader.SetVec3f("viewPos", camera.GetPos());
         planeShader.SetPointLight("pointLight", (*lightManager.GetPointLight(0)));
         planeShader.SetBool("Isblinn", Isblinn);
-
-        renderer.Render("plane", planeVertices, sizeof(planeVertices), 3, true);
+        //renderer.Render("plane", planeVertices, sizeof(planeVertices), 3, true);
 
         // cube shader
         shader.UseProgram();
@@ -235,13 +295,75 @@ int main()
         glBindTexture(GL_TEXTURE_2D, normalMap);
         shader.SetMat4("model", model);
         shader.SetVec3f("lightPos", (*lightManager.GetPointLight(0)).position);
-        renderer.RenderQuad("quad");
+        //renderer.RenderQuad("quad");
     
         model = glm::mat4(1.0f);       
         model = glm::translate(model, glm::vec3(1.5f, 0.0f, -0.5f));
-        model = glm::rotate(model, (GLfloat)sin(glfwGetTime()), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
         shader.SetMat4("model", model);
-        renderer.RenderQuad("quad");
+        //renderer.RenderQuad("quad");
+
+        PBRShader.UseProgram();
+        PBRShader.SetMaterial("material", material);
+        view = camera.GetViewMatrix();
+        PBRShader.SetMat4("view", view);
+        PBRShader.SetVec3f("camPos", camera.GetPos());
+        PBRShader.SetMat4("projection", projection);
+        PBRShader.SetBool("IsTexture", IsTexture);
+
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, material.textureMap.albedoMap);
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, material.textureMap.normalMap);
+        glActiveTexture(GL_TEXTURE2);
+        glBindTexture(GL_TEXTURE_2D, material.textureMap.metallicMap);
+        glActiveTexture(GL_TEXTURE3);
+        glBindTexture(GL_TEXTURE_2D, material.textureMap.roughnessMap);
+        glActiveTexture(GL_TEXTURE4);
+        glBindTexture(GL_TEXTURE_2D, material.textureMap.aoMap);
+
+        // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
+        model = glm::mat4(1.0f);
+        for (int row = 0; row < nrRows; ++row)
+        {
+            PBRShader.SetFloat("material.metallic", (float)row / (float)nrRows);
+            for (int col = 0; col < nrColumns; ++col)
+            {
+                // we clamp the roughness to 0.05 - 1.0 as perfectly smooth surfaces (roughness of 0.0) tend to look a bit off
+                // on direct lighting.
+                PBRShader.SetFloat("material.roughness", glm::clamp((float)col / (float)nrColumns, 0.05f, 1.0f));
+
+                model = glm::mat4(1.0f);
+                model = glm::translate(model, glm::vec3(
+                    (col - (nrColumns / 2)) * spacing,
+                    (row - (nrRows / 2)) * spacing,
+                    0.0f
+                ));
+                PBRShader.SetMat4("model", model);
+                PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+                renderer.RenderSphere("sphere");
+            }
+        }
+
+        // render light source (simply re-render sphere at light positions)
+        // this looks a bit off as we use the same shader, but it'll make their positions obvious and 
+        // keeps the codeprint small.
+        for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
+        {
+            glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
+            newPos = lightPositions[i];
+            PBRShader.UseProgram();
+            PBRShader.SetVec3f("lightPositions[" + std::to_string(i) + "]", newPos);
+            PBRShader.SetVec3f("lightColors[" + std::to_string(i) + "]", lightColors[i]);
+
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, newPos);
+            model = glm::scale(model, glm::vec3(1.0f));
+
+            PBRShader.SetMat4("model", model);
+            PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+            renderer.RenderSphere("sphere");
+        }
 
 
         // draw skybox as last
@@ -279,6 +401,24 @@ int main()
             renderer.Render("pointlight", vertices, sizeof(vertices), 3, true);
         }
 
+
+        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
+
+        // clear all relevant buffers
+        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
+        glClear(GL_COLOR_BUFFER_BIT);
+
+        hdrShader.UseProgram();
+        hdrShader.SetFloat("light", light);
+        hdrShader.SetBool("IsHDR", IsHDR);
+        hdrShader.SetFloat("exposure", exposure);
+        glBindVertexArray(quadVAO);
+        glBindTexture(GL_TEXTURE_2D, textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+
         // ImGui Optional
         ImGui::Begin("Light");
         ImGui::SliderFloat("Light Size", &size, 0.1f, 1.0f);
@@ -299,6 +439,15 @@ int main()
         if (ImGui::Button("IsNormalTexture")) {
             IsNormalTexture = !IsNormalTexture;
         }
+        if (ImGui::Button("IsHDR")) {
+            IsHDR = !IsHDR;
+        }
+        if (ImGui::Button("IsTexture")) {
+            IsTexture = !IsTexture;
+        }
+		ImGui::DragFloat3("albedo", &material.albedo[0], 0.01f, 0.0f, 1.0f);
+        ImGui::SliderFloat("exposure", &exposure, -1.0f, 2.0f);
+        ImGui::SliderFloat("light", &light, 0.0f, 1.0f);
         ImGui::End();
         ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -326,118 +475,6 @@ int main()
     glfwTerminate();
     return 0;
 }
-
-
-
-// renders the 3D scene
-// --------------------
-void renderScene(const Shader& shader, unsigned int &planeVAO)
-{
-    // floor
-    glm::mat4 model = glm::mat4(1.0f);
-    shader.SetMat4("model", model);
-    glBindVertexArray(planeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 6);
-    // cubes
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(0.0f, 1.5f, 0.0));
-    model = glm::scale(model, glm::vec3(0.5f));
-    shader.SetMat4("model", model);
-    renderCube();
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(2.0f, 0.0f, 1.0));
-    model = glm::scale(model, glm::vec3(0.5f));
-    shader.SetMat4("model", model);
-    renderCube();
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, glm::vec3(-1.0f, 0.0f, 2.0));
-    model = glm::rotate(model, glm::radians(60.0f), glm::normalize(glm::vec3(1.0, 0.0, 1.0)));
-    model = glm::scale(model, glm::vec3(0.25));
-    shader.SetMat4("model", model);
-    renderCube();
-}
-
-
-// renderCube() renders a 1x1 3D cube in NDC.
-// -------------------------------------------------
-unsigned int cubeVAO = 0;
-unsigned int cubeVBO = 0;
-void renderCube()
-{
-    // initialize (if necessary)
-    if (cubeVAO == 0)
-    {
-        float vertices[] = {
-            // back face
-            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-             1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 0.0f, // bottom-right         
-             1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 1.0f, 1.0f, // top-right
-            -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 0.0f, // bottom-left
-            -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f, 0.0f, 1.0f, // top-left
-            // front face
-            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-             1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 0.0f, // bottom-right
-             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-             1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f, 1.0f, // top-right
-            -1.0f,  1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 1.0f, // top-left
-            -1.0f, -1.0f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f, 0.0f, // bottom-left
-            // left face
-            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-            -1.0f,  1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-left
-            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-            -1.0f, -1.0f, -1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-left
-            -1.0f, -1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-            -1.0f,  1.0f,  1.0f, -1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-right
-            // right face
-             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-             1.0f,  1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 1.0f, // top-right         
-             1.0f, -1.0f, -1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 1.0f, // bottom-right
-             1.0f,  1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 1.0f, 0.0f, // top-left
-             1.0f, -1.0f,  1.0f,  1.0f,  0.0f,  0.0f, 0.0f, 0.0f, // bottom-left     
-             // bottom face
-             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-              1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 1.0f, // top-left
-              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-              1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 1.0f, 0.0f, // bottom-left
-             -1.0f, -1.0f,  1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 0.0f, // bottom-right
-             -1.0f, -1.0f, -1.0f,  0.0f, -1.0f,  0.0f, 0.0f, 1.0f, // top-right
-             // top face
-             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-              1.0f,  1.0f , 1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-              1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 1.0f, // top-right     
-              1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 1.0f, 0.0f, // bottom-right
-             -1.0f,  1.0f, -1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 1.0f, // top-left
-             -1.0f,  1.0f,  1.0f,  0.0f,  1.0f,  0.0f, 0.0f, 0.0f  // bottom-left        
-        };
-        glGenVertexArrays(1, &cubeVAO);
-        glGenBuffers(1, &cubeVBO);
-        // fill buffer
-        glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // link vertex attributes
-        glBindVertexArray(cubeVAO);
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6 * sizeof(float)));
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
-    }
-    // render Cube
-    glBindVertexArray(cubeVAO);
-    glDrawArrays(GL_TRIANGLES, 0, 36);
-    glBindVertexArray(0);
-}
-
-
-// RenderQuad() Renders a 1x1 quad in NDC
-GLuint quadVAO = 0;
-GLuint quadVBO;
-
 
 
 // process all input: query GLFW whether relevant keys are pressed/released this frame and react accordingly
@@ -479,44 +516,6 @@ void sroll_callback(GLFWwindow* window, double xoffset, double yoffset) {
     camera.MouseSrollCameraView(static_cast<float>(yoffset));
 }
 
-unsigned int load_image(const char* imageFile) {
-    // 加载并生成纹理
-    unsigned int texTureID;
-    glGenTextures(1, &texTureID);
-
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load(imageFile, &width, &height, &nrChannels, 0);
-    if (data)
-    {
-        GLenum format;
-        if (nrChannels == 1)
-            format = GL_RED;
-        if (nrChannels == 3)
-            format = GL_RGB;
-        if (nrChannels == 4) {
-            format = GL_RGBA;
-        }
-
-
-        glBindTexture(GL_TEXTURE_2D, texTureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
-        glGenerateMipmap(GL_TEXTURE_2D);
-
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT); // for this tutorial: use GL_CLAMP_TO_EDGE to prevent semi-transparent borders. Due to interpolation it takes texels from next repeat 
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, format == GL_RGBA ? GL_CLAMP_TO_EDGE : GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-    }
-    else
-    {
-        std::cout << "Failed to load texture" << std::endl;
-    }
-    stbi_image_free(data);
-
-    return texTureID;
-
-}
 
 unsigned int loadCubemap(std::vector<std::string> faces)
 {
