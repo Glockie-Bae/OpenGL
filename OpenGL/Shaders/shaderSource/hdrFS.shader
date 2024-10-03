@@ -4,7 +4,6 @@ out vec4 FragColor;
 in vec2 TexCoords;
 
 uniform sampler2D screenTexture;
-uniform float light;
 uniform bool IsHDR;
 uniform float exposure;
 
@@ -23,7 +22,6 @@ void main()
     }
     else{
         FragColor = texture(screenTexture, TexCoords);
-    
     }
     
 } 

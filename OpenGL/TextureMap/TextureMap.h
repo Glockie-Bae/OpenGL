@@ -23,3 +23,5 @@ struct TextureMap
 };
 
 unsigned int load_image(const char* imageFile);
+
+unsigned int load_hdr_image(const char* imageFile);

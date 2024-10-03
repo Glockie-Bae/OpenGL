@@ -156,6 +156,10 @@
     <None Include="Shaders\shaderSource\hdrFS.shader" />
     <None Include="Shaders\shaderSource\PBRVS.shader" />
     <None Include="Shaders\shaderSource\PBRFS.shader" />
+    <None Include="Shaders\shaderSource\hdrCubeMapVS.shader" />
+    <None Include="Shaders\shaderSource\hdrCubeMapFS.shader" />
+    <None Include="Shaders\shaderSource\backgroundVS.shader" />
+    <None Include="Shaders\shaderSource\backgroundFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">

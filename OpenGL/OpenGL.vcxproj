@@ -188,9 +188,13 @@
     <ClInclude Include="TextureMap\标头.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Shaders\shaderSource\backgroundFS.shader" />
+    <None Include="Shaders\shaderSource\backgroundVS.shader" />
     <None Include="Shaders\shaderSource\DepthTestFS.shader" />
     <None Include="Shaders\shaderSource\DepthTestVS.shader" />
     <None Include="Shaders\shaderSource\Fragment.Shader" />
+    <None Include="Shaders\shaderSource\hdrCubeMapFS.shader" />
+    <None Include="Shaders\shaderSource\hdrCubeMapVS.shader" />
     <None Include="Shaders\shaderSource\hdrFS.shader" />
     <None Include="Shaders\shaderSource\hdrVS.shader" />
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />

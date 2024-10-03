@@ -52,6 +52,7 @@ int main()
     glfwInit();
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+    glfwWindowHint(GLFW_SAMPLES, 4);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 
@@ -81,18 +82,16 @@ int main()
     // configure global opengl state
     // -----------------------------
     glEnable(GL_DEPTH_TEST);
-    glEnable(GL_MULTISAMPLE);
+    glDepthFunc(GL_LEQUAL); // set depth function to less than AND equal for skybox depth trick.
     
     Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.shader");
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
     Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
     Shader planeShader("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
-    Shader modelShader("Shaders/shaderSource/ModelVertexShader.shader", "Shaders/shaderSource/ModelFragmentShader.shader", "Shaders/shaderSource/ModelGeometryShader.shader");
     Shader hdrShader("Shaders/shaderSource/hdrVS.shader", "Shaders/shaderSource/hdrFS.shader");
     Shader PBRShader("Shaders/shaderSource/PBRVS.shader", "Shaders/shaderSource/PBRFS.shader");
-    
-
-	Model ourModel("res/nanosuit/nanosuit.obj");
+    Shader hdrCubeMapShader("Shaders/shaderSource/hdrCubeMapVS.shader", "Shaders/shaderSource/hdrCubeMapFS.shader");
+	Shader backgroundShader("Shaders/shaderSource/backgroundVS.shader", "Shaders/shaderSource/backgroundFS.shader");
 
 	// set up vertex data and configure vertex attributes
     Renderer renderer;
@@ -101,8 +100,8 @@ int main()
     renderer.CreateBufferObject("skybox");
     renderer.CreateBufferObject("pointlight");
     renderer.CreateBufferObject("sphere");
-
-
+	renderer.CreateBufferObject("framebuffer");
+    renderer.CreateBufferObject("cube");
 
     std::vector<std::string> faces
     {
@@ -118,19 +117,11 @@ int main()
     skyBoxShader.UseProgram();
     skyBoxShader.SetInt("skybox", 0);
 
-    shader.UseProgram();
-    shader.SetInt("skybox", 1);
-   
-    shader.SetInt("diffuseMap", 3);
-    shader.SetInt("normalMap", 4);
+    backgroundShader.UseProgram();
+    backgroundShader.SetInt("environmentMap", 0);
 
+	unsigned int hdrTexture = load_hdr_image("res/hdr/newport_loft.hdr");
 
-    unsigned int woodTexture = load_image("res/wood.png");
-    unsigned int diffuseMap = load_image("res/brickwall.jpg");
-    unsigned int normalMap = load_image("res/brickwall_normal.jpg");
- 
-    planeShader.UseProgram();
-    planeShader.SetInt("planeTexture", 2);
 
 
 	// ImGui 初始化
@@ -158,14 +149,11 @@ int main()
 
     LightManager lightManager;
     lightManager.AddDirLight(new DirLight(glm::vec3(0.2f), glm::vec3(0.5f), glm::vec3(0.5f), glm::vec3(0.0f, 0.0f, -2.0f)));
-
     lightManager.AddSpotLight(new SpotLight(glm::vec3(0.0f), glm::vec3(1.0f), glm::vec3(1.0f), camera.GetPos(), camera.GetFront(), 12.5f, 15.0f, 1.0f, 0.09f, 0.032f));
     for (int i = 0; i < 1; i++) {
         lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(1.0f), pointLightPositions[i], 1.0f, 0.09f, 0.032f));
         lightManager.AddPointLight(new PointLight(glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(1.0f), glm::vec3(-2.0f, 4.0f, -1.0f), 1.0f, 0.09f, 0.032f));
     }
-
-
 
     bool spotLightSwitch = true;
     bool isStencilTest = false;
@@ -177,43 +165,79 @@ int main()
     float exposure = 1.0f;
 
 
-    // screen quad VAO
-    unsigned int quadVAO, quadVBO;
-    glGenVertexArrays(1, &quadVAO);
-    glGenBuffers(1, &quadVBO);
-    glBindVertexArray(quadVAO);
-    glBindBuffer(GL_ARRAY_BUFFER, quadVBO);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(quadVertices), &quadVertices, GL_STATIC_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
 
+    // pbr: setup framebuffer
+// ----------------------
+    unsigned int captureFBO;
+    unsigned int captureRBO;
+    glGenFramebuffers(1, &captureFBO);
+    glGenRenderbuffers(1, &captureRBO);
 
-	// 生成FBO
-	unsigned int FBO;
-	glGenFramebuffers(1, &FBO);
-    glBindFramebuffer(GL_FRAMEBUFFER, FBO);
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    glBindRenderbuffer(GL_RENDERBUFFER, captureRBO);
+    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, 512, 512);
+    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, captureRBO);
 
-    // 纹理绑定
-	unsigned int textureColorBuffer;
-    glGenTextures(1, &textureColorBuffer);
-	glBindTexture(GL_TEXTURE_2D, textureColorBuffer);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, SCR_WIDTH, SCR_HEIGHT, 0, GL_RGB, GL_FLOAT, NULL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, textureColorBuffer, 0);
+    // pbr: setup cubemap to render to and attach to framebuffer
+    // ---------------------------------------------------------
+    unsigned int envCubemap;
+    glGenTextures(1, &envCubemap);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB16F, 512, 512, 0, GL_RGB, GL_FLOAT, nullptr);
+    }
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-    // create a renderbuffer object for depth and stencil attachment (we won't be sampling these)
-    unsigned int rbo;
-    glGenRenderbuffers(1, &rbo);
-    glBindRenderbuffer(GL_RENDERBUFFER, rbo);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, SCR_WIDTH, SCR_HEIGHT); // use a single renderbuffer object for both a depth AND stencil buffer.
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo); // now actually attach it
-    // now that we actually created the framebuffer and added all attachments we want to check if it is actually complete now
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
-        std::cout << "ERROR::FRAMEBUFFER:: Framebuffer is not complete!" << std::endl;
+    // pbr: set up projection and view matrices for capturing data onto the 6 cubemap face directions
+    // ----------------------------------------------------------------------------------------------
+    glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+    glm::mat4 captureViews[] =
+    {
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(-1.0f,  0.0f,  0.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  1.0f,  0.0f), glm::vec3(0.0f,  0.0f,  1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f,  0.0f), glm::vec3(0.0f,  0.0f, -1.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f,  1.0f), glm::vec3(0.0f, -1.0f,  0.0f)),
+        glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f,  0.0f, -1.0f), glm::vec3(0.0f, -1.0f,  0.0f))
+    };
+
+    hdrCubeMapShader.UseProgram();
+    hdrCubeMapShader.SetInt("equirectangularMap", 5);
+    hdrCubeMapShader.SetMat4("projection", captureProjection);
+    glActiveTexture(GL_TEXTURE5);
+    glBindTexture(GL_TEXTURE_2D, hdrTexture);
+
+    glViewport(0, 0, 512, 512); // don't forget to configure the viewport to the capture dimensions.
+    glBindFramebuffer(GL_FRAMEBUFFER, captureFBO);
+    for (unsigned int i = 0; i < 6; ++i)
+    {
+        hdrCubeMapShader.SetMat4("view", captureViews[i]);
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, envCubemap, 0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        renderer.RenderCube("cube");
+    }
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    // initialize static shader uniforms before rendering
+    // --------------------------------------------------
+    glm::mat4 model(1.0f);
+    glm::mat4 view = camera.GetViewMatrix();
+    glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
+    PBRShader.UseProgram();
+    PBRShader.SetMat4("projection", projection);
+    backgroundShader.UseProgram();
+    backgroundShader.SetMat4("projection", projection);
+
+    // then before rendering, configure the viewport to the original framebuffer's screen dimensions
+    int scrWidth, scrHeight;
+    glfwGetFramebufferSize(window, &scrWidth, &scrHeight);
+    glViewport(0, 0, scrWidth, scrHeight);
 
 
     float light = 1.0f;
@@ -234,9 +258,7 @@ int main()
 
         // render
         // ------
-        glBindFramebuffer(GL_FRAMEBUFFER, FBO);
-        glEnable(GL_DEPTH_TEST); // enable depth testing (is disabled for rendering screen-space quad)
-        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
+        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
         // 清楚深度缓冲
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -246,61 +268,6 @@ int main()
         lastTime = currentTime;
         camera.KeyboardMoveCamera(window, deltaTime);
 
-        glm::mat4 model(1.0f);
-        glm::mat4 view = camera.GetViewMatrix();
-        glm::mat4 projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 1000.0f);
-
-
-        // model shader
-		modelShader.UseProgram();
-		model = glm::mat4(1.0f);
-        model = glm::translate(model, glm::vec3(-1.5f, -0.5f, 0.0f));
-        modelShader.SetMat4("model", model);
-        modelShader.SetMat4("view", view);
-        modelShader.SetMat4("projection", projection);
-        modelShader.SetVec3f("cameraPos", camera.GetPos());
-        size = 0.1f;
-        modelShader.SetFloat("modelSize", size);
-        modelShader.SetFloat("time", static_cast<float>(glfwGetTime()));
-        
-
-        model = glm::mat4(1.0f);
-        // plane shader
-
-        planeShader.UseProgram();
-        glActiveTexture(GL_TEXTURE2);
-        glBindTexture(GL_TEXTURE_2D, woodTexture);
-        planeShader.SetMat4("model", model);
-        planeShader.SetMat4("view", view);
-        planeShader.SetMat4("projection", projection);
-
-        planeShader.SetVec3f("viewPos", camera.GetPos());
-        planeShader.SetPointLight("pointLight", (*lightManager.GetPointLight(0)));
-        planeShader.SetBool("Isblinn", Isblinn);
-        //renderer.Render("plane", planeVertices, sizeof(planeVertices), 3, true);
-
-        // cube shader
-        shader.UseProgram();
-        shader.SetMat4("view", view);
-        shader.SetMat4("projection", projection);
-        shader.SetVec3f("viewPos", camera.GetPos());
-
-        
-        // model shader texture setting
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
-        glActiveTexture(GL_TEXTURE3);
-        glBindTexture(GL_TEXTURE_2D, diffuseMap);
-        glActiveTexture(GL_TEXTURE4);
-        glBindTexture(GL_TEXTURE_2D, normalMap);
-        shader.SetMat4("model", model);
-        shader.SetVec3f("lightPos", (*lightManager.GetPointLight(0)).position);
-        //renderer.RenderQuad("quad");
-    
-        model = glm::mat4(1.0f);       
-        model = glm::translate(model, glm::vec3(1.5f, 0.0f, -0.5f));
-        shader.SetMat4("model", model);
-        //renderer.RenderQuad("quad");
 
         PBRShader.UseProgram();
         PBRShader.SetMaterial("material", material);
@@ -322,6 +289,14 @@ int main()
         glActiveTexture(GL_TEXTURE4);
         glBindTexture(GL_TEXTURE_2D, material.textureMap.aoMap);
 
+       hdrCubeMapShader.UseProgram();
+	   hdrCubeMapShader.SetMat4("view", view);
+       hdrCubeMapShader.SetMat4("projection", projection);
+       glActiveTexture(GL_TEXTURE5);
+       glBindTexture(GL_TEXTURE_2D, hdrTexture);
+       renderer.RenderCube("cube");
+
+        PBRShader.UseProgram();
         // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
         model = glm::mat4(1.0f);
         for (int row = 0; row < nrRows; ++row)
@@ -365,58 +340,27 @@ int main()
             renderer.RenderSphere("sphere");
         }
 
-
-        // draw skybox as last
-        glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
-        skyBoxShader.UseProgram();
-
-        view = glm::mat4(glm::mat3(camera.GetViewMatrix())); // remove translation from the view matrix
-        skyBoxShader.SetMat4("view", view);
-        skyBoxShader.SetMat4("projection", projection);
-        // skybox cube
-       
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_CUBE_MAP, skyBoxTexture);
-        renderer.Render("skybox", skyboxVertices, sizeof(skyboxVertices), 1, false);
-        
-        glDepthFunc(GL_LESS); // set depth function back to default
-
-        
-
         // light shader
         // setting light cube
         lightShader.UseProgram();
-
-		view = camera.GetViewMatrix();
-		projection = glm::perspective(glm::radians(camera.GetFOV()), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
         lightShader.SetMat4("view", view);
         lightShader.SetMat4("projection", projection);
         lightShader.SetFloat("size", size);
-
+    
         for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
             glm::mat4 lightModel = glm::mat4(1.0f);
             lightModel = glm::translate(lightModel, (*lightManager.GetPointLight(i)).position);
             lightModel = glm::scale(lightModel, glm::vec3(0.2f)); // a smaller cube
             lightShader.SetMat4("model", lightModel);
-            renderer.Render("pointlight", vertices, sizeof(vertices), 3, true);
+            renderer.Render("pointlight", vertices, sizeof(vertices), 3, 3, true);
         }
 
-
-        // now bind back to default framebuffer and draw a quad plane with the attached framebuffer color texture
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glDisable(GL_DEPTH_TEST); // disable depth test so screen-space quad isn't discarded due to depth test.
-
-        // clear all relevant buffers
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f); // set clear color to white (not really necessary actually, since we won't be able to see behind the quad anyways)
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        hdrShader.UseProgram();
-        hdrShader.SetFloat("light", light);
-        hdrShader.SetBool("IsHDR", IsHDR);
-        hdrShader.SetFloat("exposure", exposure);
-        glBindVertexArray(quadVAO);
-        glBindTexture(GL_TEXTURE_2D, textureColorBuffer);	// use the color attachment texture as the texture of the quad plane
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        //// render skybox (render as last to prevent overdraw)
+        backgroundShader.UseProgram();
+        backgroundShader.SetMat4("view", view);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, envCubemap);
+        renderer.RenderCube("cube");
 
 
         // ImGui Optional
@@ -447,7 +391,6 @@ int main()
         }
 		ImGui::DragFloat3("albedo", &material.albedo[0], 0.01f, 0.0f, 1.0f);
         ImGui::SliderFloat("exposure", &exposure, -1.0f, 2.0f);
-        ImGui::SliderFloat("light", &light, 0.0f, 1.0f);
         ImGui::End();
         ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

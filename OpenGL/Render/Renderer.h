@@ -26,8 +26,9 @@ public:
 	void BindBuffer(const std::string& name);
 
     void RenderQuad(const std::string& name);
-    void Render(const std::string& name, float * vertices, unsigned int sizeArray, unsigned int num_vertices, bool haveTexCoords);
+    void Render(const std::string& name, float * vertices, unsigned int sizeArray, unsigned int dimension, unsigned int num_vertices, bool haveTexCoords, unsigned int drawArraysNum = 36);
     void RenderSphere(const std::string& name);
+    void RenderCube(const std::string& name);
 
 private:
     BufferObject* GetBufferObject(const std::string& name);
