@@ -57,7 +57,7 @@ public:
     void SetVec2f(const std::string& name, glm::vec2 vec) const;
 
 	// uniform material
-    void SetMaterial(const std::string& name, Material mateial) const;
+    void BindMaterialTexture(Material mateial);
 
     // uniform light
     void SetLight(const std::string& name, Light light) const;
