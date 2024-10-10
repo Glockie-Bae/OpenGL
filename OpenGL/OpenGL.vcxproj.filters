@@ -75,6 +75,12 @@
     <ClCompile Include="TextureMap\TextureMap.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="PBR\pbrBuffer.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="WindowManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -140,6 +146,12 @@
     <ClInclude Include="TextureMap\标头.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="PBR\pbrBuffer.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="WindowManager.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\shaderSource\Vertex.shader" />
@@ -160,6 +172,10 @@
     <None Include="Shaders\shaderSource\hdrCubeMapFS.shader" />
     <None Include="Shaders\shaderSource\backgroundVS.shader" />
     <None Include="Shaders\shaderSource\backgroundFS.shader" />
+    <None Include="Shaders\shaderSource\irradianceFS.shader" />
+    <None Include="Shaders\shaderSource\prefilterFS.shader" />
+    <None Include="Shaders\shaderSource\brdfVS.shader" />
+    <None Include="Shaders\shaderSource\brdfFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">

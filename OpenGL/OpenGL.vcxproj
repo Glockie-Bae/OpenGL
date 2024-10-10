@@ -160,9 +160,11 @@
     <ClCompile Include="Light\LightManager.cpp" />
     <ClCompile Include="Mesh\Mesh.cpp" />
     <ClCompile Include="Model\Model.cpp" />
+    <ClCompile Include="PBR\pbrBuffer.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
     <ClCompile Include="Shaders\Shader.cpp" />
     <ClCompile Include="TextureMap\TextureMap.cpp" />
+    <ClCompile Include="WindowManager.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Camera.h" />
@@ -180,16 +182,20 @@
     <ClInclude Include="Light\LightManager.h" />
     <ClInclude Include="Mesh\Mesh.h" />
     <ClInclude Include="Model\Model.h" />
+    <ClInclude Include="PBR\pbrBuffer.h" />
     <ClInclude Include="Render\Renderer.h" />
     <ClInclude Include="Shaders\Shader.h" />
     <ClInclude Include="Data.h" />
     <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />
     <ClInclude Include="TextureMap\TextureMap.h" />
     <ClInclude Include="TextureMap\标头.h" />
+    <ClInclude Include="WindowManager.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\shaderSource\backgroundFS.shader" />
     <None Include="Shaders\shaderSource\backgroundVS.shader" />
+    <None Include="Shaders\shaderSource\brdfFS.shader" />
+    <None Include="Shaders\shaderSource\brdfVS.shader" />
     <None Include="Shaders\shaderSource\DepthTestFS.shader" />
     <None Include="Shaders\shaderSource\DepthTestVS.shader" />
     <None Include="Shaders\shaderSource\Fragment.Shader" />
@@ -197,12 +203,14 @@
     <None Include="Shaders\shaderSource\hdrCubeMapVS.shader" />
     <None Include="Shaders\shaderSource\hdrFS.shader" />
     <None Include="Shaders\shaderSource\hdrVS.shader" />
+    <None Include="Shaders\shaderSource\irradianceFS.shader" />
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
     <None Include="Shaders\shaderSource\ModelGeometryShader.shader" />
     <None Include="Shaders\shaderSource\ModelVertexShader.shader" />
     <None Include="Shaders\shaderSource\PBRFS.shader" />
     <None Include="Shaders\shaderSource\PBRVS.shader" />
+    <None Include="Shaders\shaderSource\prefilterFS.shader" />
     <None Include="Shaders\shaderSource\SkyBoxFragment.shader" />
     <None Include="Shaders\shaderSource\SkyBoxVertex.shader" />
     <None Include="Shaders\shaderSource\Vertex.shader" />

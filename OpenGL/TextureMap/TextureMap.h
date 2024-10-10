@@ -22,6 +22,10 @@ struct TextureMap
 	void LoadTextureMap(const std::string& FilePath);
 };
 
+class SkyBoxFrameBuffer {
+
+};
+
 unsigned int load_image(const char* imageFile);
 
 unsigned int load_hdr_image(const char* imageFile);

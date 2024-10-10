@@ -1,6 +1,7 @@
 #include "Shader.h"
 
 Shader::Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath)
+	:m_textureID(0)
 {
 	std::string vertexCode;
 	std::string fragmentCode;
@@ -118,6 +119,14 @@ void Shader::SetMat3(const std::string& name, glm::mat3 trans) const
 	glUniformMatrix3fv(glGetUniformLocation(m_ShaderProgram, name.c_str()), 1, GL_FALSE, glm::value_ptr(trans));
 }
 
+void Shader::SetMaterial(const std::string& name, Material material) const
+{
+	SetVec3f(name + ".albedo", material.albedo);
+	SetFloat(name + ".metallic", material.metallic);
+	SetFloat(name + ".roughness", material.roughness);
+	SetFloat(name + ".ao", material.ao);
+}
+
 void Shader::SetVec3f(const std::string& name, glm::vec3 vec) const
 {
 	glUniform3f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y, vec.z);
@@ -128,12 +137,25 @@ void Shader::SetVec2f(const std::string& name, glm::vec2 vec) const
 	glUniform2f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y);
 }
 
-void Shader::SetMaterial(const std::string& name, Material mateial) const
+void Shader::BindMaterialTexture(Material material) 
 {
-	SetVec3f(name + ".albedo", mateial.albedo);
-	SetFloat(name + ".metallic", mateial.metallic);
-	SetFloat(name + ".roughness", mateial.roughness);
-	SetFloat(name + ".ao", mateial.ao);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, material.textureMap.albedoMap);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, material.textureMap.normalMap);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, material.textureMap.metallicMap);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, material.textureMap.roughnessMap);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, material.textureMap.aoMap);
+
+}
+
+void Shader::ActivateTexture(unsigned int& textureBuffer, GLuint GL_TEXTURE_TYPE)
+{
+	glActiveTexture(m_textureID++);
+	glBindTexture(GL_TEXTURE_TYPE, textureBuffer);
 }
 
 void Shader::SetLight(const std::string& name, Light light) const
@@ -177,6 +199,7 @@ void Shader::SetSpotLight(const std::string& name, SpotLight spotLight, bool spo
 
 	SetBool("spotLightSwitch", spotLightSwitch);
 }
+
 
 void Shader::DeleteProgram()
 {
@@ -256,6 +279,7 @@ void Shader::checkCompileErrors(unsigned int shader, std::string type)
 
 }
 
+
 Material::Material(glm::vec3 albedo, float metallic, float roughness, float ao)
 {
 	this->albedo = albedo;
@@ -275,6 +299,7 @@ Material::Material(glm::vec3 albedo, float metallic, float roughness, float ao, 
 
 	textureMap = TextureMap(filePath);
 }
+
 
 void Material::LoadTextureMap(const std::string& filePath)
 {

@@ -27,6 +27,7 @@ struct Material{
 
     TextureMap textureMap;
 
+    Material() {}
     Material(glm::vec3 albedo, float metallic, float roughness, float ao);
     Material(glm::vec3 albedo, float metallic, float roughness, float ao, const std::string& filePath);
 
@@ -52,6 +53,7 @@ public:
     void SetMat4(const std::string& name, glm::mat4 trans) const;
     void SetMat3(const std::string& name, glm::mat3 trans) const;
 
+    void SetMaterial(const std::string& name, Material material) const;
     // uniform vector
     void SetVec3f(const std::string& name, glm::vec3 vec) const;
     void SetVec2f(const std::string& name, glm::vec2 vec) const;
@@ -64,6 +66,9 @@ public:
     void SetPointLight(const std::string& name, PointLight light) const;
     void SetDirLight(const std::string& name, DirLight light) const;
     void SetSpotLight(const std::string& name, SpotLight spotLight, bool spotLightSwitch) const;
+
+
+    void ActivateTexture(unsigned int& textureBuffer, GLuint GL_TEXTURE_TYPE);
     
     // É¾³ý³ÌÐò
     void DeleteProgram();
@@ -81,5 +86,7 @@ private:
 	void checkCompileErrors(unsigned int shader, std::string type);
     unsigned int m_ShaderProgram;
 
+    unsigned int m_textureID = 0;
 
+    
 };

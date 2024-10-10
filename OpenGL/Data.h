@@ -1,5 +1,5 @@
 #pragma once
-#include<glm/vec3.hpp>
+#include<glm/glm.hpp>
 #include<vector>
 
 float texCoords[] = {
@@ -229,3 +229,5 @@ glm::vec3 lightColors[] = {
     glm::vec3(300.0f, 300.0f, 300.0f),
     glm::vec3(300.0f, 300.0f, 300.0f)
 };
+
+

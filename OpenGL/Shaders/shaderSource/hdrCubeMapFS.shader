@@ -4,6 +4,8 @@ in vec3 localPos;
 
 uniform sampler2D equirectangularMap;
 
+
+// 等距柱状投影转换立方体贴图函数
 const vec2 invAtan = vec2(0.1591, 0.3183);
 vec2 SampleSphericalMap(vec3 v)
 {

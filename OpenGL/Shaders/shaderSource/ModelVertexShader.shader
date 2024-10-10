@@ -15,5 +15,5 @@ uniform float modelSize;
 void main()
 {
     vs_out.texCoords = aTexCoords;    
-    gl_Position = projection * view * model * vec4(modelSize * aPos, 1.0);
+    gl_Position = projection * view * model * vec4(1.0 * aPos, 1.0);
 }
