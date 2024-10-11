@@ -11,11 +11,11 @@ Mesh::Mesh(std::vector<Vertex> vertices, std::vector<unsigned int> indices, std:
 
 void Mesh::Draw(Shader shader)
 {
-    // bind appropriate textures
-    unsigned int diffuseNr = 1;
-    unsigned int specularNr = 1;
-    unsigned int normalNr = 1;
-    unsigned int heightNr = 1;
+    ////bind appropriate textures
+    //unsigned int diffuseNr = 1;
+    //unsigned int specularNr = 1;
+    //unsigned int normalNr = 1;
+    //unsigned int heightNr = 1;
     //for (unsigned int i = 0; i < textures.size(); i++)
     //{
     //    glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
@@ -36,34 +36,6 @@ void Mesh::Draw(Shader shader)
     //    // and finally bind the texture
     //    glBindTexture(GL_TEXTURE_2D, textures[i].id);
     //}
-
-    for (unsigned int i = 0; i < textures.size(); i++)
-    {
-        //glActiveTexture(GL_TEXTURE0 + i); // active proper texture unit before binding
-        // retrieve texture number (the N in diffuse_textureN)
-        std::string number;
-        std::string name = textures[i].type;
-        if (name == "texture_diffuse") {
-            name = "modelDiffuseMap";
-            glActiveTexture(GL_TEXTURE8);
-        }
-        else if (name == "texture_normal") {
-            name = "modelNormalMap";
-            glActiveTexture(GL_TEXTURE9);
-        }
-        else if (name == "texture_specular") {
-            name = "modelSpecularMap";
-            glActiveTexture(GL_TEXTURE10);
-        }
-        
-        else if (name == "texture_height")
-            number = std::to_string(heightNr++); // transfer unsigned int to string
-
-        // now set the sampler to the correct texture unit
-        glUniform1i(glGetUniformLocation(shader.GetID(), (name).c_str()), 8 + i);
-        // and finally bind the texture
-        glBindTexture(GL_TEXTURE_2D, textures[i].id);
-    }
 
     // draw mesh
     glBindVertexArray(m_VAO);

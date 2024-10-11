@@ -300,14 +300,17 @@ Material::Material(glm::vec3 albedo, float metallic, float roughness, float ao, 
 	textureMap = TextureMap(filePath);
 }
 
-Material::Material(const char* filePath)
+Material::Material(const char* filePath, bool tga)
 {
-	LoadTextureMap(std::string(filePath));
+	if(tga)
+		LoadTextureMap(std::string(filePath), tga);
+	else
+		LoadTextureMap(std::string(filePath));
 }
 
 
-void Material::LoadTextureMap(const std::string& filePath)
+void Material::LoadTextureMap(const std::string& filePath, bool tga)
 {
-	textureMap.LoadTextureMap(filePath);
+	textureMap.LoadTextureMap(filePath, tga);
 }
 

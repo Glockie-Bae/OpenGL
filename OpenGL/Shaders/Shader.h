@@ -25,14 +25,15 @@ struct Material{
     float ao;                   // »·¾³¹âÕÚ±Î
 
 
+
     TextureMap textureMap;
 
     Material() {}
     Material(glm::vec3 albedo, float metallic, float roughness, float ao);
     Material(glm::vec3 albedo, float metallic, float roughness, float ao, const std::string& filePath);
-    Material(const char* filePath);
+    Material(const char* filePath, bool tga = false);
 
-    void LoadTextureMap(const std::string& filePath);
+    void LoadTextureMap(const std::string& filePath, bool tga = false);
 };
 
 

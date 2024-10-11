@@ -12,6 +12,7 @@ uniform mat4 view;
 uniform mat4 model;
 uniform mat3 normalMatrix;
 uniform float size;
+uniform bool IsModel;
 
 void main()
 {
@@ -20,4 +21,12 @@ void main()
     Normal = normalMatrix * aNormal;   
 
     gl_Position =  projection * view * vec4(WorldPos, 1.0);
+
+    if(IsModel){
+        TexCoords = aTexCoords;
+        WorldPos = vec3(model * vec4(aPos * size, 1.0));
+        Normal = normalMatrix * aNormal;   
+
+        gl_Position =  projection * view * vec4(WorldPos, 1.0);
+    }
 }

@@ -19,7 +19,7 @@ struct TextureMap
 	TextureMap(unsigned int albedoMap, unsigned int normalMap, unsigned int metallicMap, unsigned int roughnessMap, unsigned int aoMap);
 	TextureMap(const std::string& FilePath);
 
-	void LoadTextureMap(const std::string& FilePath);
+	void LoadTextureMap(const std::string& FilePath, bool tga = false);
 };
 
 class SkyBoxFrameBuffer {

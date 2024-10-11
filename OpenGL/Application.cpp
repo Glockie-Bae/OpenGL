@@ -19,6 +19,8 @@
 #include<vector>
 #include<map>
 
+
+
 #define STB_IMAGE_IMPLEMENTATION
 #include"stb/stb_image.h"
 
@@ -31,6 +33,7 @@ void processInput(GLFWwindow* window);
 unsigned int load_image(const char* imageFile);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void renderQuad();
+
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -74,6 +77,7 @@ int main()
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetCursorPosCallback(window, mouse_callback);
     glfwSetScrollCallback(window, sroll_callback);
+    glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
     // glad: load all OpenGL function pointers
     // ---------------------------------------
@@ -130,7 +134,7 @@ int main()
 
 	unsigned int hdrTexture = load_hdr_image("res/hdr/newport_loft.hdr");
 
-	Model cyborgModel("./res/objects/cyborg/cyborg.obj");
+	Model gunModel("./res/objects/gun/Cerberus_LP.FBX");
 	
 
     float size = 0.1f;
@@ -145,7 +149,7 @@ int main()
 
     Material silver("res/pbr/silver");
 
-
+    Material gun("res/objects/gun/Textures", true);
 
 
 
@@ -159,9 +163,6 @@ int main()
     PBRShader.SetInt("prefilterMap", 6);
     PBRShader.SetInt("brdfLUT", 7);
 
-    PBRShader.SetInt("modelDiffuseMap", 8);
-    PBRShader.SetInt("modelNormalMap", 9);
-    PBRShader.SetInt("modelSpecularMap", 10);
 
     backgroundShader.UseProgram();
     backgroundShader.SetInt("environmentMap", 0);
@@ -315,6 +316,7 @@ int main()
         PBRShader.SetMat4("projection", projection);
         PBRShader.SetBool("IsTexture", IsTexture);
         PBRShader.SetBool("IsIrradianceMap", IsIrradianceMap);
+        PBRShader.SetFloat("size", size);
 
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
@@ -356,7 +358,7 @@ int main()
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         PBRShader.SetMaterialTexture(rusted_iron);
         windowManager.RenderSphere("sphere");
-
+        
         model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
@@ -364,12 +366,12 @@ int main()
         windowManager.RenderSphere("sphere");
 
 
-        model = glm::translate(model, model_position);
+        model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
+        model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
-        PBRShader.SetFloat("model_metallic", metallic);
-        PBRShader.SetFloat("model_roughness", roughness);
-        cyborgModel.Draw(PBRShader);
+        PBRShader.SetMaterialTexture(gun);
+        gunModel.Draw(PBRShader);
       
 
         // render light source (simply re-render sphere at light positions)
@@ -378,7 +380,7 @@ int main()
         for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
         {
             glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
-            //newPos = lightPositions[i];
+            newPos = lightPositions[i];
             PBRShader.UseProgram();
             PBRShader.SetVec3f("lightPositions[" + std::to_string(i) + "]", newPos);
             PBRShader.SetVec3f("lightColors[" + std::to_string(i) + "]", lightColors[i]);
@@ -456,6 +458,7 @@ int main()
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
          
 
+        
         // glBindVertexArray(0); // no need to unbind it every time 
 
         // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
@@ -582,3 +585,4 @@ void renderQuad()
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glBindVertexArray(0);
 }
+

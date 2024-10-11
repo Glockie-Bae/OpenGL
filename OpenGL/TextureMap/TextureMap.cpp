@@ -25,13 +25,23 @@ TextureMap::TextureMap(const std::string& FilePath)
     aoMap = load_image((FilePath + std::string("/ao.png")).c_str());
 }
 
-void TextureMap::LoadTextureMap(const std::string& FilePath)
+void TextureMap::LoadTextureMap(const std::string& FilePath, bool tga)
 {
-    albedoMap = load_image((FilePath + std::string("/albedo.png")).c_str());
-    normalMap = load_image((FilePath + std::string("/normal.png")).c_str());
-    metallicMap = load_image((FilePath + std::string("/metallic.png")).c_str());
-    roughnessMap = load_image((FilePath + std::string("/roughness.png")).c_str());
-    aoMap = load_image((FilePath + std::string("/ao.png")).c_str());
+    if (tga) {
+        stbi_set_flip_vertically_on_load(false);
+        albedoMap = load_image((FilePath + std::string("/albedo.tga")).c_str());
+        normalMap = load_image((FilePath + std::string("/normal.tga")).c_str());
+        metallicMap = load_image((FilePath + std::string("/metallic.tga")).c_str());
+        roughnessMap = load_image((FilePath + std::string("/roughness.tga")).c_str());
+        aoMap = load_image((FilePath + std::string("/ao.tga")).c_str());
+    }
+    else {
+        albedoMap = load_image((FilePath + std::string("/albedo.png")).c_str());
+        normalMap = load_image((FilePath + std::string("/normal.png")).c_str());
+        metallicMap = load_image((FilePath + std::string("/metallic.png")).c_str());
+        roughnessMap = load_image((FilePath + std::string("/roughness.png")).c_str());
+        aoMap = load_image((FilePath + std::string("/ao.png")).c_str());
+    }
 }
 
 unsigned int load_image(const char* imageFile) {

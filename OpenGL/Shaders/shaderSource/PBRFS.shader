@@ -132,12 +132,6 @@ void main()
      float roughness = texture(roughnessMap, TexCoords).r;
      float ao        = texture(aoMap, TexCoords).r;
 
-     if(IsModel){
-        albedo = pow(texture(modelDiffuseMap, TexCoords).rgb, vec3(2.2));
-        metallic = model_metallic;
-        roughness = model_roughness;
-        ao = 1.0;  
-     }
 
      if(!IsTexture){
         albedo = material.albedo;
@@ -231,5 +225,5 @@ void main()
     // gamma correct
     color = pow(color, vec3(1.0/2.2)); 
 
-    FragColor = vec4(color , 1.0);
+    FragColor = vec4(color, 1.0);
 }
