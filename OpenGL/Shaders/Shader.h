@@ -30,6 +30,7 @@ struct Material{
     Material() {}
     Material(glm::vec3 albedo, float metallic, float roughness, float ao);
     Material(glm::vec3 albedo, float metallic, float roughness, float ao, const std::string& filePath);
+    Material(const char* filePath);
 
     void LoadTextureMap(const std::string& filePath);
 };
@@ -59,7 +60,7 @@ public:
     void SetVec2f(const std::string& name, glm::vec2 vec) const;
 
 	// uniform material
-    void BindMaterialTexture(Material mateial);
+    void SetMaterialTexture(Material mateial);
 
     // uniform light
     void SetLight(const std::string& name, Light light) const;

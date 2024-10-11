@@ -137,7 +137,7 @@ void Shader::SetVec2f(const std::string& name, glm::vec2 vec) const
 	glUniform2f(glGetUniformLocation(m_ShaderProgram, name.c_str()), vec.x, vec.y);
 }
 
-void Shader::BindMaterialTexture(Material material) 
+void Shader::SetMaterialTexture(Material material) 
 {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, material.textureMap.albedoMap);
@@ -298,6 +298,11 @@ Material::Material(glm::vec3 albedo, float metallic, float roughness, float ao, 
 	this->ao = ao;
 
 	textureMap = TextureMap(filePath);
+}
+
+Material::Material(const char* filePath)
+{
+	LoadTextureMap(std::string(filePath));
 }
 
 

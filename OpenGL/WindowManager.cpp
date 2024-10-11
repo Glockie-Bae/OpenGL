@@ -4,8 +4,6 @@ WindowManager::WindowManager()
 {
 	m_renderer = new Renderer();
 	m_pbrBuffer = new PBR_BUFFER(512);
-
-
 }
 
 void WindowManager::AddRenderType(const std::string& name)
@@ -23,10 +21,28 @@ void WindowManager::RenderSphere(const std::string& name)
 	m_renderer->RenderSphere(name);
 }
 
+void WindowManager::BindTexture(unsigned int& textureID, int renderSize, TextureType type)
+{
+	switch (type)
+	{
+	case EvironmentMap:
+		m_pbrBuffer->BindEvironmentMapTexture(textureID, renderSize);
+		break;
+	case IrradianceMap:
+		m_pbrBuffer->BindIrradianceTexture(textureID, renderSize);
+		break;
+	case PrefilterMap:
+		m_pbrBuffer->BindPrefilterTexture(textureID, renderSize);
+		break;
+	default:
+		break;
+	}
+	
+}
+
 
 void WindowManager::RenderEvironmentMapTexture(unsigned int& textureID, Shader shader, int renderSize)
 {
-	m_pbrBuffer->BindEvironmentMapTexture(textureID, renderSize);
 	m_pbrBuffer->BindFrameBuffer(renderSize);
 	for (unsigned int i = 0; i < 6; ++i)
 	{
@@ -38,17 +54,24 @@ void WindowManager::RenderEvironmentMapTexture(unsigned int& textureID, Shader s
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
-void WindowManager::RenderIrradianceTexture(unsigned int* textureID, Shader* shader, int renderSize)
+void WindowManager::RenderIrradianceTexture(unsigned int& textureID, Shader shader, int renderSize)
 {
 
-	m_pbrBuffer->BindIrradianceTexture(*textureID, 32);
 	m_pbrBuffer->BindFrameBuffer(32);
+
+	for (unsigned int i = 0; i < 6; ++i)
+	{
+		shader.SetMat4("view", captureViews[i]);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, textureID, 0);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		RenderCube("cube");
+	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	
 }
 
-void WindowManager::RenderMipMapTextures(unsigned int& textureID, Shader shader, int renderSize, int mipSize)
+void WindowManager::RenderPrefilterTextures(unsigned int& textureID, Shader shader, int renderSize, int mipSize)
 {
-	m_pbrBuffer->BindPrefilterTexture(textureID, renderSize);
 	m_pbrBuffer->BindFrameBuffer(renderSize);
 
 	unsigned int maxMipLevels = mipSize;

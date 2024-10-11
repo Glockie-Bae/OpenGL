@@ -4,6 +4,10 @@
 #include"PBR/pbrBuffer.h"
 #include"Camera.h"
 
+enum TextureType
+{
+	EvironmentMap, IrradianceMap, PrefilterMap
+};
 
 class WindowManager {
 public:
@@ -15,11 +19,14 @@ public:
 
 	void RenderSphere(const std::string& name);
 
+	void BindTexture(unsigned int& textureID, int renderSize, TextureType type);
+
+
 	void RenderEvironmentMapTexture(unsigned int& textureID, Shader shader, int renderSize);
 
-	void RenderIrradianceTexture(unsigned int* textureID, Shader* shader, int renderSize);
+	void RenderIrradianceTexture(unsigned int& textureID, Shader shader, int renderSize);
 
-	void RenderMipMapTextures(unsigned int& textureID, Shader shader, int renderSize, int mipSize);
+	void RenderPrefilterTextures(unsigned int& textureID, Shader shader, int renderSize, int mipSize);
 
 	Renderer* m_renderer;
 

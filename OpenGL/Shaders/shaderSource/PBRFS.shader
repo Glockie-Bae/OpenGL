@@ -28,11 +28,18 @@ uniform sampler2D aoMap;
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 
+uniform sampler2D modelDiffuseMap;
+uniform sampler2D modelNormalMap;
+uniform sampler2D modelspecularMap;
+
 uniform sampler2D brdfLUT;
 
 uniform bool IsIrradianceMap;
+uniform bool IsModel;
 
 uniform Material material;
+uniform float model_metallic;
+uniform float model_roughness;
 
 uniform bool IsTexture;
 
@@ -125,6 +132,12 @@ void main()
      float roughness = texture(roughnessMap, TexCoords).r;
      float ao        = texture(aoMap, TexCoords).r;
 
+     if(IsModel){
+        albedo = pow(texture(modelDiffuseMap, TexCoords).rgb, vec3(2.2));
+        metallic = model_metallic;
+        roughness = model_roughness;
+        ao = 1.0;  
+     }
 
      if(!IsTexture){
         albedo = material.albedo;
