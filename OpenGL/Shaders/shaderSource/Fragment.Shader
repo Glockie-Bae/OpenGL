@@ -3,82 +3,70 @@ out vec4 FragColor;
 
 in VS_OUT {
     vec3 FragPos;
+    vec3 Normal;
     vec2 TexCoords;
-    vec3 TangentLightPos;
-    vec3 TangentViewPos;
-    vec3 TangentFragPos;
+    vec4 FragPosLightSpace;
 } fs_in;
 
-uniform sampler2D diffuseMap;
-uniform sampler2D normalMap;
+uniform sampler2D diffuseTexture;
+uniform sampler2D shadowMap;
 
-uniform bool normalMapping;
+uniform vec3 lightPos;
+uniform vec3 viewPos;
 
-
-float PI = 3.14;
-
-float D_GGX_TR(vec3 N, vec3 H, float a){
-// 计算发现分布函数
-// 与某些（半程）向量h取向一致的微平面的比率。
-// 公式为：result = (a * a) / PI * ((N * H)(N * H) * ((a * a - 1) +1))^2
-
-    float a2 = a * a;
-    float NDotH = max(dot(N, H), 0.0);
-    float NDotH2 = NDotH * NDotH;
-    float denom = NDotH2 * (a2 - 1.0) + 1.0;
-	return a2 / (PI * denom * denom);
-}
-
-float SchlickGGX(vec3 N, vec3 V, float K){
-// 微平面间相互遮蔽的比率
-// 粗糙度较高的表面其微平面间相互遮蔽的概率就越高
-// 公式为： result = N * V / (N * V) * (1 - K) + K
-// k 是α的重映射(Remapping) k_dir = (a + 1) * (a + 1) / 8   k_IBL = (a * a) / 2
-
-    float NDot = max(dot(N, V), 0.0);
-    return NDot / NDot * (1.0 - K) + K;
-}
-
-float GeometrySmith(vec3 N, vec3 V, vec3 L, float K){
-    float ggx1 = SchlickGGX(N, V, K);
-    float ggx2 = SchlickGGX(N, L, K);
-    return ggx1 * ggx2;
-}
-
-
-vec3 fresnelSchlick(float cosTheta, vec3 F0)
+float ShadowCalculation(vec4 fragPosLightSpace, float bias)
 {
-// 涅斐尔方程 result = F + (1 - F)(1 - (H * V))^5
-// F 根据不同的物体进行定义，H * V用cosTheta表示
-// F0 = mix(F0, surfaceColor.rgb, metalness);
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(shadowMap, projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // check whether current frag pos is in shadow
+    // 添加 bias 偏置，当光线与物体垂直时，误差偏移最小 
+    
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(shadowMap, 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(shadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
 
-    return F0 + (1.0 - F0) * pow(1.0 - cosTheta, 5.0);
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
+
+    return shadow;
 }
-
-
-
 
 void main()
 {           
-    // Obtain normal from normal map in range [0,1]
-    vec3 normal = texture(normalMap, fs_in.TexCoords).rgb;
-    // Transform normal vector to range [-1,1]
-    normal = normalize(normal * 2.0 - 1.0);  // this normal is in tangent space
-
-    // Get diffuse color
-    vec3 color = texture(diffuseMap, fs_in.TexCoords).rgb;
-    // Ambient
-    vec3 ambient = 0.1 * color;
-    // Diffuse
-    vec3 lightDir = normalize(fs_in.TangentLightPos - fs_in.TangentFragPos);
+    vec3 color = texture(diffuseTexture, fs_in.TexCoords).rgb;
+    vec3 normal = normalize(fs_in.Normal);
+    vec3 lightColor = vec3(0.7);
+    // ambient
+    vec3 ambient = 0.3 * lightColor;
+    // diffuse
+    vec3 lightDir = normalize(lightPos - fs_in.FragPos);
     float diff = max(dot(lightDir, normal), 0.0);
-    vec3 diffuse = diff * color;
-    // Specular
-    vec3 viewDir = normalize(fs_in.TangentViewPos - fs_in.TangentFragPos);
+    vec3 diffuse = diff * lightColor;
+    // specular
+    vec3 viewDir = normalize(viewPos - fs_in.FragPos);
     vec3 reflectDir = reflect(-lightDir, normal);
+    float spec = 0.0;
     vec3 halfwayDir = normalize(lightDir + viewDir);  
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32.0);
-    vec3 specular = vec3(0.2) * spec;
+    spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+    vec3 specular = spec * lightColor;    
+    // calculate shadow
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = ShadowCalculation(fs_in.FragPosLightSpace, bias);                      
+    vec3 lighting = (ambient + (1.0 - shadow) * (diffuse + specular)) * color;    
     
-    FragColor = vec4(ambient + diffuse + specular, 1.0f);
+    FragColor = vec4(lighting, 1.0);
 }

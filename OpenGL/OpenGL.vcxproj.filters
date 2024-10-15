@@ -152,6 +152,9 @@
     <ClInclude Include="WindowManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="Shaders\shaderSource\DDDVS.Shader">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Shaders\shaderSource\Vertex.shader" />
@@ -159,8 +162,8 @@
     <None Include="Shaders\shaderSource\LightVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelVertexShader.shader" />
     <None Include="Shaders\shaderSource\ModelFragmentShader.shader" />
-    <None Include="Shaders\shaderSource\DepthTestVS.shader" />
-    <None Include="Shaders\shaderSource\DepthTestFS.shader" />
+    <None Include="Shaders\shaderSource\DepthVS.shader" />
+    <None Include="Shaders\shaderSource\DepthFS.shader" />
     <None Include="Shaders\shaderSource\SkyBoxVertex.shader" />
     <None Include="Shaders\shaderSource\SkyBoxFragment.shader" />
     <None Include="Shaders\shaderSource\ModelGeometryShader.shader" />
@@ -176,6 +179,7 @@
     <None Include="Shaders\shaderSource\prefilterFS.shader" />
     <None Include="Shaders\shaderSource\brdfVS.shader" />
     <None Include="Shaders\shaderSource\brdfFS.shader" />
+    <None Include="Shaders\shaderSource\DDDFS.shader" />
   </ItemGroup>
   <ItemGroup>
     <Image Include="res\wall.jpg">

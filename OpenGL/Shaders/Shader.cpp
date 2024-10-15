@@ -121,6 +121,7 @@ void Shader::SetMat3(const std::string& name, glm::mat3 trans) const
 
 void Shader::SetMaterial(const std::string& name, Material material) const
 {
+
 	SetVec3f(name + ".albedo", material.albedo);
 	SetFloat(name + ".metallic", material.metallic);
 	SetFloat(name + ".roughness", material.roughness);
@@ -149,7 +150,20 @@ void Shader::SetMaterialTexture(Material material)
 	glBindTexture(GL_TEXTURE_2D, material.textureMap.roughnessMap);
 	glActiveTexture(GL_TEXTURE4);
 	glBindTexture(GL_TEXTURE_2D, material.textureMap.aoMap);
+}
 
+void Shader::UnBindTexture()
+{
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE2);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE3);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glActiveTexture(GL_TEXTURE4);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 void Shader::ActivateTexture(unsigned int& textureBuffer, GLuint GL_TEXTURE_TYPE)

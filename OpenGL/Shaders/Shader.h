@@ -55,13 +55,15 @@ public:
     void SetMat4(const std::string& name, glm::mat4 trans) const;
     void SetMat3(const std::string& name, glm::mat3 trans) const;
 
-    void SetMaterial(const std::string& name, Material material) const;
     // uniform vector
     void SetVec3f(const std::string& name, glm::vec3 vec) const;
     void SetVec2f(const std::string& name, glm::vec2 vec) const;
 
 	// uniform material
+    void SetMaterial(const std::string& name, Material material) const;
     void SetMaterialTexture(Material mateial);
+
+    void UnBindTexture();
 
     // uniform light
     void SetLight(const std::string& name, Light light) const;

@@ -3,6 +3,7 @@ out vec4 FragColor;
 in vec2 TexCoords;
 in vec3 WorldPos;
 in vec3 Normal;
+in vec4 FragPosLightSpace;
 
 
 // lights
@@ -27,15 +28,18 @@ uniform sampler2D roughnessMap;
 uniform sampler2D aoMap;
 uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
+uniform sampler2D ShadowMap;
 
 uniform sampler2D modelDiffuseMap;
 uniform sampler2D modelNormalMap;
 uniform sampler2D modelspecularMap;
 
-uniform sampler2D brdfLUT;
 
 uniform bool IsIrradianceMap;
 uniform bool IsModel;
+
+
 
 uniform Material material;
 uniform float model_metallic;
@@ -44,6 +48,37 @@ uniform float model_roughness;
 uniform bool IsTexture;
 
 uniform vec3 camPos;
+
+float ShadowCalculation(vec4 fragPosLightSpace, float bias)
+{
+    // perform perspective divide
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    // transform to [0,1] range
+    projCoords = projCoords * 0.5 + 0.5;
+    // get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth = texture(ShadowMap, projCoords.xy).r; 
+    // get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+    // check whether current frag pos is in shadow
+    // 添加 bias 偏置，当光线与物体垂直时，误差偏移最小 
+    
+    float shadow = 0.0;
+    vec2 texelSize = 1.0 / textureSize(ShadowMap, 0);
+    for(int x = -1; x <= 1; ++x)
+    {
+        for(int y = -1; y <= 1; ++y)
+        {
+            float pcfDepth = texture(ShadowMap, projCoords.xy + vec2(x, y) * texelSize).r; 
+            shadow += currentDepth - bias > pcfDepth  ? 1.0 : 0.0;        
+        }    
+    }
+    shadow /= 9.0;
+
+    if(projCoords.z > 1.0)
+        shadow = 0.0;
+
+    return shadow;
+}
 
 // 法线映射到切线空间
 vec3 getNormalFromMap()
@@ -137,10 +172,10 @@ void main()
         albedo = material.albedo;
         metallic = material.metallic;
         roughness = material.roughness;
-        ao = 1.0;   
+        ao = material.ao;   
      }
     
-
+    
     vec3 N = getNormalFromMap();
     vec3 V = normalize(camPos - WorldPos);
     vec3 R = reflect(-V, N);
@@ -153,6 +188,7 @@ void main()
     vec3 Lo = vec3(0.0);
     for(int i = 0; i < 4; ++i) 
     {
+        
         // 光源方向
         vec3 L = normalize(lightPositions[i] - WorldPos);
         // 光源与视线的半程向量
@@ -211,19 +247,32 @@ void main()
     vec2 brdf  = texture(brdfLUT, vec2(max(dot(N, V), 0.0), roughness)).rg;
     vec3 specular = prefilteredColor * (F * brdf.x + brdf.y);
 
-    vec3 ambient = (kD * diffuse + specular) * ao;
+    // using shadow map to calcular shadow 
+    vec3 normal = normalize(Normal);
+    vec3 lightPos = vec3(-2.0, 4.0, -1.0);
+    vec3 lightDir = normalize(lightPos - WorldPos);
+    float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+    float shadow = ShadowCalculation(FragPosLightSpace, bias);    
+
+    vec3 ambient = (kD * diffuse + specular) * ao * max((1.0 - shadow), 0.01);
     // vec3 ambient = vec3(0.002);
 
+    // Lo is specular texture
     vec3 color = ambient + Lo;
 
     if(!IsIrradianceMap){
         color = (kD * diffuse) * ao + Lo;
     }
 
+    //float shadow = ShadowCalculation(FragPosLightSpace);                      
+    //color = (ambient + (1.0 - shadow) * (diffuse + specular));  
+
     // HDR tonemapping
     color = color / (color + vec3(1.0));
     // gamma correct
     color = pow(color, vec3(1.0/2.2)); 
 
+    
+    //color = color * (1.0-shadow);
     FragColor = vec4(color, 1.0);
 }

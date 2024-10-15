@@ -34,6 +34,12 @@ unsigned int load_image(const char* imageFile);
 unsigned int loadCubemap(std::vector<std::string> faces);
 void renderQuad();
 
+unsigned int planeVAO;
+void renderSphere(const Shader& shader, Renderer renderer);
+void renderPlane(const Shader& shader, Renderer renderer);
+
+
+
 
 // settings
 const unsigned int SCR_WIDTH = 1280;
@@ -46,7 +52,8 @@ Camera camera;
 
 bool right_mouse_pressed = false;
 
-glm::vec3 lightPos(1.2f, 0.58f, 2.0f);
+glm::vec3 lightPos(-2.0f, 4.0f, -1.0f);
+glm::vec3 planePos(0.0f, -1.0f, 0.0f);
 
 unsigned int indexCount;
 
@@ -95,7 +102,6 @@ int main()
     Shader shader("Shaders/shaderSource/Vertex.shader", "Shaders/shaderSource/Fragment.shader");
     Shader lightShader("Shaders/shaderSource/LightVertexShader.shader", "Shaders/shaderSource/LightFragmentShader.Shader");
     Shader skyBoxShader("Shaders/shaderSource/SkyBoxVertex.shader", "Shaders/shaderSource/SkyBoxFragment.shader");
-    Shader planeShader("Shaders/shaderSource/DepthTestVS.shader", "Shaders/shaderSource/DepthTestFS.shader");
     Shader hdrShader("Shaders/shaderSource/hdrVS.shader", "Shaders/shaderSource/hdrFS.shader");
     Shader PBRShader("Shaders/shaderSource/PBRVS.shader", "Shaders/shaderSource/PBRFS.shader");
     Shader hdrCubeMapShader("Shaders/shaderSource/hdrCubeMapVS.shader", "Shaders/shaderSource/hdrCubeMapFS.shader");
@@ -103,6 +109,8 @@ int main()
     Shader irradianceShader("Shaders/shaderSource/hdrCubeMapVS.shader", "Shaders/shaderSource/irradianceFS.shader");
 	Shader prefilterShader("Shaders/shaderSource/hdrCubeMapVS.shader", "Shaders/shaderSource/prefilterFS.shader");
     Shader brdfShader("Shaders/shaderSource/brdfVS.shader", "Shaders/shaderSource/brdfFS.shader");
+    Shader DepthShader("Shaders/shaderSource/DepthVS.shader", "Shaders/shaderSource/DepthFS.shader");
+    Shader debugDepthShader("Shaders/shaderSource/DDDVS.shader", "Shaders/shaderSource/DDDFS.shader");
 
     WindowManager windowManager;
 	// set up vertex data and configure vertex attributes
@@ -135,6 +143,8 @@ int main()
 	unsigned int hdrTexture = load_hdr_image("res/hdr/newport_loft.hdr");
 
 	Model gunModel("./res/objects/gun/Cerberus_LP.FBX");
+
+    unsigned int woodTexture = load_hdr_image("res/wood.png");
 	
 
     float size = 0.1f;
@@ -151,6 +161,8 @@ int main()
 
     Material gun("res/objects/gun/Textures", true);
 
+    Material plane(glm::vec3(0.5f, 0.2f, 0.3f), 0.5f, 0.5f, 1.0f);
+
 
 
     PBRShader.UseProgram();
@@ -162,10 +174,18 @@ int main()
     PBRShader.SetInt("irradianceMap", 5);
     PBRShader.SetInt("prefilterMap", 6);
     PBRShader.SetInt("brdfLUT", 7);
+    PBRShader.SetInt("ShadowMap", 8);
+
+    debugDepthShader.UseProgram();
+    debugDepthShader.SetInt("depthMap", 0);
 
 
     backgroundShader.UseProgram();
     backgroundShader.SetInt("environmentMap", 0);
+
+    shader.UseProgram();
+    shader.SetInt("diffuseTexture", 0);
+    shader.SetInt("shadowMap", 1);
 
 
     LightManager lightManager;
@@ -220,6 +240,12 @@ int main()
     windowManager.RenderIrradianceTexture(irradianceMap, irradianceShader, 32);
 
     // -----------------------------------------------------------------------------
+    // shadowMap Texture
+    unsigned int shadowMap;
+    windowManager.BindTexture(shadowMap, 1024, DepthMap);
+
+
+    //// -----------------------------------------------------------------------------
     unsigned int prefilterMap;
 
     windowManager.BindTexture(prefilterMap, 128, PrefilterMap);
@@ -292,22 +318,49 @@ int main()
         // -----
         processInput(window);
 
+        currentTime = glfwGetTime();
+        float deltaTime = currentTime - lastTime;
+        lastTime = currentTime;
+        camera.KeyboardMoveCamera(window, deltaTime);
+
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
         // render
         // ------
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
-        // 清楚深度缓冲
+        glClearColor(0.1f, 0.1f, 0.1f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+        // 1. render depth of scene to texture (from light's perspective)
+        // create shadow map
+        // --------------------------------------------------------------
+        glm::mat4 lightProjection, lightView;
+        glm::mat4 lightSpaceMatrix;
+        float near_plane = 1.0f, far_plane = 10.0f;
+        lightProjection = glm::ortho(-10.0f, 10.0f, -10.0f, 10.0f, near_plane, far_plane);
+        lightView = glm::lookAt(lightPos, glm::vec3(0.0f), glm::vec3(0.0, 1.0, 0.0));
+        lightSpaceMatrix = lightProjection * lightView;
+        // render scene from light's point of view
+        DepthShader.UseProgram();
+        DepthShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
 
-        currentTime = glfwGetTime();
-        float deltaTime = currentTime - lastTime;
-        lastTime = currentTime;
-        camera.KeyboardMoveCamera(window, deltaTime);
+        glViewport(0, 0, 1024, 1024);
+        glBindFramebuffer(GL_FRAMEBUFFER, windowManager.m_shadowMapFBO);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        renderSphere(DepthShader, *windowManager.m_renderer);
+        renderPlane(DepthShader, *windowManager.m_renderer);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
+
+
+        // reset viewport
+        glViewport(0, 0, SCR_WIDTH, SCR_HEIGHT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+        // 2. render scene as normal using the generated depth/shadow map  
+        // --------------------------------------------------------------
+        glCullFace(GL_FRONT);
 
         PBRShader.UseProgram();
         view = camera.GetViewMatrix();
@@ -317,6 +370,7 @@ int main()
         PBRShader.SetBool("IsTexture", IsTexture);
         PBRShader.SetBool("IsIrradianceMap", IsIrradianceMap);
         PBRShader.SetFloat("size", size);
+        PBRShader.SetMat4("lightSpaceMatrix", lightSpaceMatrix);
 
         glActiveTexture(GL_TEXTURE5);
         glBindTexture(GL_TEXTURE_CUBE_MAP, irradianceMap);
@@ -324,12 +378,14 @@ int main()
         glBindTexture(GL_TEXTURE_CUBE_MAP, prefilterMap);
         glActiveTexture(GL_TEXTURE7);
         glBindTexture(GL_TEXTURE_2D, brdfLUTTexture);
+        glActiveTexture(GL_TEXTURE8);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
 
 
 
         PBRShader.UseProgram();
         // render rows*column number of spheres with varying metallic/roughness values scaled by rows and columns respectively
-		PBRShader.SetFloat("material.metallic", metallic);
+        //PBRShader.SetFloat("material.metallic", metallic);
         PBRShader.SetFloat("material.roughness", roughness);
         PBRShader.SetVec3f("material.albedo", albedo);
 
@@ -340,43 +396,64 @@ int main()
         PBRShader.SetMaterialTexture(gold);
         windowManager.RenderSphere("sphere");
 
-        model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(-2.5f, 0.0f, 0.0f));
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         PBRShader.SetMaterialTexture(humanSkin);
         windowManager.RenderSphere("sphere");
 
-        model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         PBRShader.SetMaterialTexture(plasticMaterial);
         windowManager.RenderSphere("sphere");
 
-        
+        model = glm::mat4(1.0f);
         model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         PBRShader.SetMaterialTexture(rusted_iron);
         windowManager.RenderSphere("sphere");
         
-        model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(5.0f, 0.0f, 0.0f));
+        PBRShader.SetMat4("model", model);
+        PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+        PBRShader.SetMaterialTexture(silver);
+        windowManager.RenderSphere("sphere");
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, lightPos);
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         PBRShader.SetMaterialTexture(silver);
         windowManager.RenderSphere("sphere");
 
 
-        model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(7.5f, 0.0f, 0.0f));
         model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
         PBRShader.SetMat4("model", model);
         PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
         PBRShader.SetMaterialTexture(gun);
         gunModel.Draw(PBRShader);
-      
+        //PBRShader.UnBindTexture();
 
-        // render light source (simply re-render sphere at light positions)
-        // this looks a bit off as we use the same shader, but it'll make their positions obvious and 
-        // keeps the codeprint small.
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, planePos);
+        PBRShader.SetMat4("model", model);
+        PBRShader.SetMat3("normalMatrix", glm::transpose(glm::inverse(glm::mat3(model))));
+        PBRShader.SetBool("IsTexture", false);
+        PBRShader.SetMaterial("material", plane);
+        windowManager.m_renderer->Render("plane", planeVertices, sizeof(planeVertices), 3, 3, true);
+        PBRShader.SetBool("IsTexture", true);
+
+       // render light source (simply re-render sphere at light positions)
+       // this looks a bit off as we use the same shader, but it'll make their positions obvious and 
+       // keeps the codeprint small.
         for (unsigned int i = 0; i < sizeof(lightPositions) / sizeof(lightPositions[0]); ++i)
         {
             glm::vec3 newPos = lightPositions[i] + glm::vec3(sin(glfwGetTime() * 5.0) * 5.0, 0.0, 0.0);
@@ -394,27 +471,20 @@ int main()
             windowManager.RenderSphere("sphere");
         }
 
+        glCullFace(GL_BACK); // 不要忘记设回原先的culling face
         
 
-        // light shader
-        // setting light cube
-        lightShader.UseProgram();
-        lightShader.SetMat4("view", view);
-        lightShader.SetMat4("projection", projection);
-        lightShader.SetFloat("size", size);
-    
-        for (int i = 0; i < lightManager.GetPointLightCount(); i++) {
-            glm::mat4 lightModel = glm::mat4(1.0f);
-            lightModel = glm::translate(lightModel, (*lightManager.GetPointLight(i)).position);
-            lightModel = glm::scale(lightModel, glm::vec3(0.2f)); // a smaller cube
-            lightShader.SetMat4("model", lightModel);
-            windowManager.m_renderer->Render("pointlight", vertices, sizeof(vertices), 3, 3, true);
-            windowManager.RenderSphere("sphere");
-        }
+        //////// render skybox (render as last to prevent overdraw)
+        // 
+        // render Depth map to quad for visual debugging
+        // ---------------------------------------------
+        debugDepthShader.UseProgram();
+        debugDepthShader.SetFloat("near_plane", near_plane);
+        debugDepthShader.SetFloat("far_plane", far_plane);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, shadowMap);
 
 
-
-        //// render skybox (render as last to prevent overdraw)
         backgroundShader.UseProgram();
         backgroundShader.SetMat4("view", view);
         glActiveTexture(GL_TEXTURE0);
@@ -446,13 +516,10 @@ int main()
         if (ImGui::Button("IsHDR")) {
             IsHDR = !IsHDR;
         }
-        ImGui::SliderFloat3("model position", &model_position[0], -10.0f, 10.0f);
-        ImGui::SliderFloat("metallic", &metallic, 0.0f, 1.0f);
-        ImGui::SliderFloat("roughness", &roughness, 0.0f, 1.0f);
-		ImGui::DragFloat3("albedo", &albedo[0], 0.01f, 0.0f, 1.0f);
+        ImGui::SliderFloat3("light position", &lightPos[0], -10.0f, 10.0f);
+        ImGui::SliderFloat3("plane position", &planePos[0], -10.0f, 10.0f);
         ImGui::Checkbox("IsTexture", &IsTexture);
         ImGui::Checkbox("IsIrradianceMap", &IsIrradianceMap);
-        ImGui::SliderFloat("exposure", &exposure, -1.0f, 2.0f);
         ImGui::End();
         ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -586,3 +653,40 @@ void renderQuad()
     glBindVertexArray(0);
 }
 
+void renderSphere(const Shader& shader, Renderer renderer)
+{
+    // floor
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-5.0f, 0.0f, 0.0f));
+    shader.SetMat4("model", model);
+    renderer.RenderSphere("sphere");
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(-2.5f, 0.0f, 0.0f));
+    shader.SetMat4("model", model);
+    renderer.RenderSphere("sphere");
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(0.0f, 0.0f, 0.0f));
+    shader.SetMat4("model", model);
+    renderer.RenderSphere("sphere");
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(2.5f, 0.0f, 0.0f));
+    shader.SetMat4("model", model);
+    renderer.RenderSphere("sphere");
+
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, glm::vec3(5.0f, 0.0f, 0.0f));
+    shader.SetMat4("model", model);
+    renderer.RenderSphere("sphere");
+}
+
+void renderPlane(const Shader& shader, Renderer renderer) {
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, planePos);
+    shader.SetMat4("model", model);
+    renderer.Render("plane", planeVertices, sizeof(planeVertices), 3, 3, true);
+}

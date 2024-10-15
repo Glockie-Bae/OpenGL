@@ -24,6 +24,8 @@ public:
 
 	void BindFrameBuffer(int renderSize);
 
+	void BindDepthMapTexture(unsigned int& textureID, int renderSize);
+
 	void RenderbufferStorage(int width, int height);
 
 private:

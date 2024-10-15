@@ -4,6 +4,7 @@ WindowManager::WindowManager()
 {
 	m_renderer = new Renderer();
 	m_pbrBuffer = new PBR_BUFFER(512);
+	glGenFramebuffers(1, &m_shadowMapFBO);
 }
 
 void WindowManager::AddRenderType(const std::string& name)
@@ -34,10 +35,18 @@ void WindowManager::BindTexture(unsigned int& textureID, int renderSize, Texture
 	case PrefilterMap:
 		m_pbrBuffer->BindPrefilterTexture(textureID, renderSize);
 		break;
+	case DepthMap:
+		BindShadowMapTexture(textureID, renderSize);
+		break;
 	default:
 		break;
 	}
 	
+}
+
+void WindowManager::RenderDepthTexture(unsigned int& textureID, Shader shader, int renderSize)
+{
+
 }
 
 
@@ -95,6 +104,25 @@ void WindowManager::RenderPrefilterTextures(unsigned int& textureID, Shader shad
 			RenderCube("cube");
 		}
 	}
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
+void WindowManager::BindShadowMapTexture(unsigned int& textureID, int renderSize)
+{
+	glGenTextures(1, &textureID);
+	glBindTexture(GL_TEXTURE_2D, textureID);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, renderSize, renderSize, 0, GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+	GLfloat borderColor[] = { 1.0, 1.0, 1.0, 1.0 };
+	glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, borderColor);
+	// attach depth texture as FBO's depth buffer
+	glBindFramebuffer(GL_FRAMEBUFFER, m_shadowMapFBO);
+	glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, textureID, 0);
+	glDrawBuffer(GL_NONE);
+	glReadBuffer(GL_NONE);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 

@@ -186,6 +186,7 @@
     <ClInclude Include="Render\Renderer.h" />
     <ClInclude Include="Shaders\Shader.h" />
     <ClInclude Include="Data.h" />
+    <ClInclude Include="Shaders\shaderSource\DDDVS.Shader" />
     <ClInclude Include="Shaders\shaderSource\LightFragmentShader.shader" />
     <ClInclude Include="TextureMap\TextureMap.h" />
     <ClInclude Include="TextureMap\标头.h" />
@@ -196,8 +197,9 @@
     <None Include="Shaders\shaderSource\backgroundVS.shader" />
     <None Include="Shaders\shaderSource\brdfFS.shader" />
     <None Include="Shaders\shaderSource\brdfVS.shader" />
-    <None Include="Shaders\shaderSource\DepthTestFS.shader" />
-    <None Include="Shaders\shaderSource\DepthTestVS.shader" />
+    <None Include="Shaders\shaderSource\DDDFS.shader" />
+    <None Include="Shaders\shaderSource\DepthFS.shader" />
+    <None Include="Shaders\shaderSource\DepthVS.shader" />
     <None Include="Shaders\shaderSource\Fragment.Shader" />
     <None Include="Shaders\shaderSource\hdrCubeMapFS.shader" />
     <None Include="Shaders\shaderSource\hdrCubeMapVS.shader" />

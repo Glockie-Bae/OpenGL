@@ -6,6 +6,7 @@ layout (location = 2) in vec2 aTexCoords;
 out vec2 TexCoords;
 out vec3 WorldPos;
 out vec3 Normal;
+out vec4 FragPosLightSpace;
 
 uniform mat4 projection;
 uniform mat4 view;
@@ -14,6 +15,8 @@ uniform mat3 normalMatrix;
 uniform float size;
 uniform bool IsModel;
 
+uniform mat4 lightSpaceMatrix;
+
 void main()
 {
     TexCoords = aTexCoords;
@@ -21,6 +24,7 @@ void main()
     Normal = normalMatrix * aNormal;   
 
     gl_Position =  projection * view * vec4(WorldPos, 1.0);
+    FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
 
     if(IsModel){
         TexCoords = aTexCoords;
@@ -28,5 +32,6 @@ void main()
         Normal = normalMatrix * aNormal;   
 
         gl_Position =  projection * view * vec4(WorldPos, 1.0);
+        FragPosLightSpace = lightSpaceMatrix * vec4(WorldPos, 1.0);
     }
 }
