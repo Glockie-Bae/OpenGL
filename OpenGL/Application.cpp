@@ -13,6 +13,7 @@
 #include"Mesh/Mesh.h"
 #include"Ray/Ray.h"
 #include"Ray/IntersectObject/IntersectManager.h"
+#include"Random.h"
 
 #include"PBR/pbrBuffer.h"
 #include"WindowManager.h"
@@ -166,6 +167,8 @@ int main()
 
     Material plane(glm::vec3(0.5f, 0.2f, 0.3f), 0.5f, 0.5f, 1.0f);
 
+
+ 
 
     build_5_2();
 
@@ -699,7 +702,7 @@ void renderPlane(const Shader& shader, Renderer renderer) {
 
 void build_5_2()
 {
-    std::ofstream file("graph5-2.ppm");
+    std::ofstream file("res/RayTracing/graph5-2.ppm");
     size_t W = 400, H = 200;
 
     if (file.is_open())
@@ -714,8 +717,13 @@ void build_5_2()
         for (int y = H - 1; y >= 0; --y)
             for (int x = 0; x < W; ++x)
             {
-                glm::vec2 para{ float(x) / W, float(y) / H };
-                glm::vec4 color = lerp5(camera.GetRay(para), list);
+                glm::vec4 color;
+                for (int i = 0; i < 50; i++) {
+                    glm::vec2 para{ (float(x) + Random::Float())  / W, (float(y) + Random::Float() ) / H };
+					color += lerp5(camera.GetRay(para), list);
+
+                }
+                color /= 50.0f;
                 int r = int(255.99 * color.r);
                 int g = int(255.99 * color.g);
                 int b = int(255.99 * color.b);

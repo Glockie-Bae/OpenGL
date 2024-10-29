@@ -162,6 +162,7 @@
     <ClCompile Include="Model\Model.cpp" />
     <ClCompile Include="PBR\pbrBuffer.cpp" />
     <ClCompile Include="Ray\IntersectObject\IntersectManager.cpp" />
+    <ClCompile Include="Random.cpp" />
     <ClCompile Include="Ray\IntersectObject\Sphere.cpp" />
     <ClCompile Include="Ray\Ray.cpp" />
     <ClCompile Include="Render\Renderer.cpp" />
@@ -188,6 +189,7 @@
     <ClInclude Include="PBR\pbrBuffer.h" />
     <ClInclude Include="Ray\Intersect.h" />
     <ClInclude Include="Ray\IntersectObject\IntersectManager.h" />
+    <ClInclude Include="Random.h" />
     <ClInclude Include="Ray\IntersectObject\Sphere.h" />
     <ClInclude Include="Ray\Ray.h" />
     <ClInclude Include="Render\Renderer.h" />
