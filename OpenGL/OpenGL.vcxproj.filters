@@ -81,6 +81,15 @@
     <ClCompile Include="WindowManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
+    <ClCompile Include="Ray\Ray.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Ray\IntersectObject\Sphere.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="Ray\IntersectObject\IntersectManager.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ImGui\imconfig.h">
@@ -153,6 +162,18 @@
       <Filter>头文件</Filter>
     </ClInclude>
     <ClInclude Include="Shaders\shaderSource\DDDVS.Shader">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray\Ray.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray\Intersect.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray\IntersectObject\Sphere.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="Ray\IntersectObject\IntersectManager.h">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

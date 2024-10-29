@@ -9,6 +9,11 @@ Camera::Camera()
 
 	m_CameraRight = glm::normalize(glm::cross(m_CameraFront, m_CameraWorldUp));
 	m_CameraUp = glm::normalize(glm::cross(m_CameraRight, m_CameraFront));
+
+	m_eye = glm::vec3(0.0f, 0.0f, 0.0f);
+	m_horizontal = glm::vec3(4.0f, 0.0f, 0.0f);
+	m_vertical = glm::vec3(0.0f, 2.0f, 0.0f);
+	m_start = glm::vec3(-2.0f, -1.0f, -1.0f);
 }
 
 Camera::~Camera()
@@ -23,6 +28,11 @@ Camera::Camera(glm::vec3 pos, glm::vec3 front, glm::vec3 up)
 
 	m_CameraRight = glm::normalize(glm::cross(m_CameraFront, m_CameraWorldUp));
 	m_CameraUp = glm::normalize(glm::cross(m_CameraRight, m_CameraFront));
+
+	m_eye = glm::vec3(0.0f, 0.0f, 0.0f);
+	m_horizontal = glm::vec3(4.0f, 0.0f, 0.0f);
+	m_vertical = glm::vec3(0.0f, 2.0f, 0.0f);
+	m_start = glm::vec3(-2.0f, -1.0f, -1.0f);
 }
 
 glm::mat4 Camera::GetViewMatrix()

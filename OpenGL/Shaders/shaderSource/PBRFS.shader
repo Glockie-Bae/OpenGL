@@ -254,7 +254,7 @@ void main()
     float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
     float shadow = ShadowCalculation(FragPosLightSpace, bias);    
 
-    vec3 ambient = (kD * diffuse + specular) * ao * max((1.0 - shadow), 0.01);
+    vec3 ambient = (kD * diffuse + specular) * ao * max((1.0 - shadow), 0.1);
     // vec3 ambient = vec3(0.002);
 
     // Lo is specular texture

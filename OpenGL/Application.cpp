@@ -11,6 +11,8 @@
 #include"Model/Model.h"
 
 #include"Mesh/Mesh.h"
+#include"Ray/Ray.h"
+#include"Ray/IntersectObject/IntersectManager.h"
 
 #include"PBR/pbrBuffer.h"
 #include"WindowManager.h"
@@ -37,6 +39,7 @@ void renderQuad();
 unsigned int planeVAO;
 void renderSphere(const Shader& shader, Renderer renderer);
 void renderPlane(const Shader& shader, Renderer renderer);
+void build_5_2();
 
 
 
@@ -162,6 +165,9 @@ int main()
     Material gun("res/objects/gun/Textures", true);
 
     Material plane(glm::vec3(0.5f, 0.2f, 0.3f), 0.5f, 0.5f, 1.0f);
+
+
+    build_5_2();
 
 
 
@@ -689,4 +695,37 @@ void renderPlane(const Shader& shader, Renderer renderer) {
     model = glm::translate(model, planePos);
     shader.SetMat4("model", model);
     renderer.Render("plane", planeVertices, sizeof(planeVertices), 3, 3, true);
+}
+
+void build_5_2()
+{
+    std::ofstream file("graph5-2.ppm");
+    size_t W = 400, H = 200;
+
+    if (file.is_open())
+    {
+        file << "P3\n" << W << " " << H << "\n255\n" << std::endl;
+
+        IntersectManager list;
+        list.AddSphere(glm::vec3(0.0f, 0.0f, -1.0f), 0.5f);
+        list.AddSphere(glm::vec3(0.0f, -100.5f, -1.0f), 100.0f);
+
+
+        for (int y = H - 1; y >= 0; --y)
+            for (int x = 0; x < W; ++x)
+            {
+                glm::vec2 para{ float(x) / W, float(y) / H };
+                glm::vec4 color = lerp5(camera.GetRay(para), list);
+                int r = int(255.99 * color.r);
+                int g = int(255.99 * color.g);
+                int b = int(255.99 * color.b);
+                file << r << " " << g << " " << b << std::endl;
+            }
+        std::cout << "complished" << std::endl;
+        file.close();
+        
+        list.DeleteObject();
+    }
+    else
+        std::cerr << "open file error" << std::endl;
 }

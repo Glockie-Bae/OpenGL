@@ -8,6 +8,7 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include<iostream>
+#include"Ray/Ray.h"
 
 static glm::mat4 captureViews[] =
 {
@@ -46,6 +47,14 @@ public:
 	
 	void SetFirstMouse(bool IsTrue);
 
+	inline const Ray GetRay(const float u, const float v) const {
+		return Ray(m_eye, m_start + u * m_horizontal + v * m_vertical);
+	}
+
+	inline const Ray GetRay(const glm::vec2& para) const {
+		return Ray(m_eye, m_start + para.x * m_horizontal + para.y * m_vertical);
+	}
+
 private:
 	glm::vec3 m_CameraPos;
 	glm::vec3 m_CameraFront;
@@ -63,6 +72,11 @@ private:
 	float m_LastY = 0;
 
 	bool m_FirstMouse = true;
+
+	glm::vec3 m_eye;
+	glm::vec3 m_start;
+	glm::vec3 m_horizontal;
+	glm::vec3 m_vertical;
 
 
 };
